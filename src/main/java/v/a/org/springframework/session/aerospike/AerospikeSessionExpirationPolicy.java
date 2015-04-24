@@ -29,7 +29,7 @@ import org.springframework.session.ExpiringSession;
 import org.springframework.session.data.redis.RedisOperationsSessionRepository.RedisSession;
 
 /**
- * A strategy for expiring {@link RedisSession} instances. This performs two
+ * A strategy for expiring {@link AerospikeSession} instances. This performs two
  * operations:
  *
  * Redis has no guarantees of when an expired session event will be fired. In

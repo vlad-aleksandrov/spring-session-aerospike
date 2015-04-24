@@ -30,7 +30,7 @@ import org.springframework.session.events.SessionDestroyedEvent;
 import org.springframework.session.web.http.SessionRepositoryFilter;
 import org.springframework.util.Assert;
 
-import v.a.org.springframework.session.aerospike.AerospikeOperationsSessionRepository.RedisSession;
+import v.a.org.springframework.session.aerospike.AerospikeOperationsSessionRepository.AerospikeSession;
 
 /**
  * <p>
@@ -80,7 +80,7 @@ import v.a.org.springframework.session.aerospike.AerospikeOperationsSessionRepos
  * </pre>
  *
  * <p>
- * The {@link RedisSession} keeps track of the properties that have changed and only updates those. This means if an
+ * The {@link AerospikeSession} keeps track of the properties that have changed and only updates those. This means if an
  * attribute is written once and read many times we only need to write that attribute once. For example, assume the
  * session attribute "sessionAttr2" from earlier was updated. The following would be executed upon saving:
  * </p>
@@ -138,7 +138,7 @@ import v.a.org.springframework.session.aerospike.AerospikeOperationsSessionRepos
  * @author Rob Winch
  */
 public class AerospikeOperationsSessionRepository implements
-        SessionRepository<AerospikeOperationsSessionRepository.RedisSession> {
+        SessionRepository<AerospikeOperationsSessionRepository.AerospikeSession> {
     /**
      * The prefix for each key of the Redis Hash representing a single session. The suffix is the unique session id.
      */
@@ -174,7 +174,7 @@ public class AerospikeOperationsSessionRepository implements
 
     /**
      * If non-null, this value is used to override the default value for
-     * {@link RedisSession#setMaxInactiveIntervalInSeconds(int)}.
+     * {@link AerospikeSession#setMaxInactiveIntervalInSeconds(int)}.
      */
     private Integer defaultMaxInactiveInterval;
 
@@ -214,7 +214,7 @@ public class AerospikeOperationsSessionRepository implements
         this.defaultMaxInactiveInterval = defaultMaxInactiveInterval;
     }
 
-    public void save(RedisSession session) {
+    public void save(AerospikeSession session) {
         session.saveDelta();
     }
 
@@ -223,7 +223,7 @@ public class AerospikeOperationsSessionRepository implements
         this.expirationPolicy.cleanExpiredSessions();
     }
 
-    public RedisSession getSession(String id) {
+    public AerospikeSession getSession(String id) {
         return getSession(id, false);
     }
 
@@ -237,7 +237,7 @@ public class AerospikeOperationsSessionRepository implements
      *            returned.
      * @return
      */
-    private RedisSession getSession(String id, boolean allowExpired) {
+    private AerospikeSession getSession(String id, boolean allowExpired) {
         Map<Object, Object> entries = getSessionBoundHashOperations(id).entries();
         if (entries.isEmpty()) {
             return null;
@@ -259,7 +259,7 @@ public class AerospikeOperationsSessionRepository implements
         if (!allowExpired && loaded.isExpired()) {
             return null;
         }
-        RedisSession result = new RedisSession(loaded);
+        AerospikeSession result = new AerospikeSession(loaded);
         result.originalLastAccessTime = loaded.getLastAccessedTime()
                 + TimeUnit.SECONDS.toMillis(loaded.getMaxInactiveIntervalInSeconds());
         result.setLastAccessedTime(System.currentTimeMillis());
@@ -279,8 +279,8 @@ public class AerospikeOperationsSessionRepository implements
         this.sessionRedisOperations.delete(key);
     }
 
-    public RedisSession createSession() {
-        RedisSession redisSession = new RedisSession();
+    public AerospikeSession createSession() {
+        AerospikeSession redisSession = new AerospikeSession();
         if (defaultMaxInactiveInterval != null) {
             redisSession.setMaxInactiveIntervalInSeconds(defaultMaxInactiveInterval);
         }
@@ -341,7 +341,7 @@ public class AerospikeOperationsSessionRepository implements
      * @since 1.0
      * @author Rob Winch
      */
-    final class RedisSession implements ExpiringSession {
+    final class AerospikeSession implements ExpiringSession {
         private final MapSession cached;
         private Long originalLastAccessTime;
         private Map<String, Object> delta = new HashMap<String, Object>();
@@ -349,7 +349,7 @@ public class AerospikeOperationsSessionRepository implements
         /**
          * Creates a new instance ensuring to mark all of the new attributes to be persisted in the next save operation.
          */
-        RedisSession() {
+        AerospikeSession() {
             this(new MapSession());
             delta.put(CREATION_TIME_ATTR, getCreationTime());
             delta.put(MAX_INACTIVE_ATTR, getMaxInactiveIntervalInSeconds());
@@ -363,7 +363,7 @@ public class AerospikeOperationsSessionRepository implements
          *            the {@MapSession} that represents the persisted session that was retrieved. Cannot be
          *            null.
          */
-        RedisSession(MapSession cached) {
+        AerospikeSession(MapSession cached) {
             Assert.notNull("MapSession cannot be null");
             this.cached = cached;
         }
