@@ -334,7 +334,7 @@ public class AerospikeOperationsSessionRepository implements
     /**
      * A custom implementation of {@link Session} that uses a {@link MapSession} as the basis for its mapping. It keeps
      * track of any attributes that have changed. When
-     * {@link org.springframework.session.data.redis.RedisOperationsSessionRepository.RedisSession#saveDelta()} is
+     * {@link org.springframework.session.data.redis.AerospikeOperationsSessionRepository.AerospikeSession#saveDelta()} is
      * invoked
      * all the attributes that have been changed will be persisted.
      *

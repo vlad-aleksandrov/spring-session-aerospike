@@ -88,7 +88,7 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
 	}
 
 	@Bean
-	public RedisTemplate<String,ExpiringSession> sessionRedisTemplate(RedisConnectionFactory connectionFactory) {
+	public AerospikeTemplate<String,ExpiringSession> sessionRedisTemplate(RedisConnectionFactory connectionFactory) {
 		RedisTemplate<String, ExpiringSession> template = new RedisTemplate<String, ExpiringSession>();
 		template.setKeySerializer(new StringRedisSerializer());
 		template.setHashKeySerializer(new StringRedisSerializer());
