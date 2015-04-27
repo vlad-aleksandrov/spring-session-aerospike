@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package v.a.org.springframework.store.aerospike;
+package v.a.org.springframework.store;
 
 import org.springframework.core.NestedRuntimeException;
 

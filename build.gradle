@@ -41,12 +41,12 @@ dependencies {
     compile "javax.inject:javax.inject:$injectVersion"
 
 	compile "javax.servlet:javax.servlet-api:$servletApiVersion"
-    
+	compile "com.esotericsoftware:kryo-shaded:$kryoVersion"
+	compile "de.javakaffee:kryo-serializers:$kryoSerializersVersion"
+	compile "org.iq80.snappy:snappy:$snappyVersion"
 
     // Aerospire Driver
     compile "com.aerospike:aerospike-client:$aerospikeVersion"
-    
-    
 
     // Testing
     testCompile "junit:junit:$junitVersion"

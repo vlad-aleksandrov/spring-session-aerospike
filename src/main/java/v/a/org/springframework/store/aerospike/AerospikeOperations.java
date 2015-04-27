@@ -15,9 +15,10 @@
  */
 package v.a.org.springframework.store.aerospike;
 
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
 
+import com.aerospike.client.Bin;
+import com.aerospike.client.Record;
 
 /**
  * Interface that specified a basic set of Aerospike operations, implemented by {@link AerospikeTemplate}. Not often used but a
@@ -25,18 +26,28 @@ import java.util.concurrent.TimeUnit;
  * 
  * @author Vlad Aleksandrov
  */
-public interface AerospikeOperations<K, V> {
+public interface AerospikeOperations<K> {
 
     boolean hasKey(K key);
 
-    void delete(K ... key);
+    void delete(K key);
+    
+    void deleteBin(K key, String binName);
+    
+    /**
+     * Persists a single bin in record. 
+     * @param key
+     * @param data
+     */
+    void persist(K key, Bin value);
+    
+    /**
+     * Persists multiple bins in the record. 
+     * @param key
+     * @param data
+     */
+    void persist(K key, Set<Bin> data);
 
-
-    Boolean expire(K key, long timeout, TimeUnit unit);
-
-    Boolean expireAt(K key, Date date);
-
-    void persist(K key, V value);
-
+    Record fetch(K key);
 
 }

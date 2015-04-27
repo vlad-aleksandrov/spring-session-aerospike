@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package v.a.org.springframework.store.aerospike;
+package v.a.org.springframework.store;
+
 
 /**
  * Basic interface serialization and deserialization of Objects to byte arrays (binary data). It is recommended that
@@ -22,7 +23,7 @@ package v.a.org.springframework.store.aerospike;
  * @author Vlad Aleksandrov
  * 
  */
-public interface AttributeSerializer<T> {
+public interface StoreSerializer<T> {
 
     /**
      * Serialize the given object to binary data.
@@ -40,6 +41,11 @@ public interface AttributeSerializer<T> {
      *            object binary representation
      * @return the equivalent object instance
      */
-    T deserialize(byte[] bytes) throws SerializationException;
+    T deserialize(byte[] bytes, Class<T> type) throws SerializationException;
+    
+    /**
+     * Cleanup resources.
+     */
+    void cleanup();
 
 }
