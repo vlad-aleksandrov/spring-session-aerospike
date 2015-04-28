@@ -1,12 +1,12 @@
 /*
- * Copyright 2002-2015 the original author or authors.
- *
+ * Copyright 2015 the original author or authors.
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,37 +21,43 @@ import java.lang.annotation.Target;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
+
+import com.aerospike.client.IAerospikeClient;
+import com.aerospike.client.async.IAsyncClient;
 
 /**
  * Add this annotation to an {@code @Configuration} class to expose the
  * SessionRepositoryFilter as a bean named "springSessionRepositoryFilter" and
- * backed by Redis. In order to leverage the annotation, a single {@link RedisConnectionFactory}
- * must be provided. For example:
+ * backed by Aerospike. In order to leverage the annotation, a single instance of each {@link IAerospikeClient} and
+ * {@link IAsyncClient} must be provided. For example:
  *
  * <pre>
  * {@literal @Configuration}
- * {@literal @EnableRedisHttpSession}
- * public class RedisHttpSessionConfig {
- *
- *     {@literal @Bean}
- *     public JedisConnectionFactory connectionFactory() throws Exception {
- *         return new JedisConnectionFactory();
+ * {@literal @EnableAerospikeHttpSession}
+ * public class AerospikeHttpSessionConfig {
+ *     
+ *     {@literal @Bean(destroyMethod = "close")}
+ *     public AerospikeClient aerospikeClient() throws Exception {
+ *         return new AerospikeClient("localhost", 3000);
  *     }
- *
+ * 
+ *     {@literal @Bean(destroyMethod = "close")}
+ *     public AsyncClient aerospikeAsyncClient() throws Exception {
+ *         return new AsyncClient("localhost", 3000);
+ *     }
+ * 
  * }
  * </pre>
  *
  * More advanced configurations can extend {@link AerospikeHttpSessionConfiguration} instead.
  *
- * @author Rob Winch
- * @since 1.0
+ * @author Vlad Aleksandrov
  */
-@Retention(value=java.lang.annotation.RetentionPolicy.RUNTIME)
-@Target(value={java.lang.annotation.ElementType.TYPE})
+@Retention(value = java.lang.annotation.RetentionPolicy.RUNTIME)
+@Target(value = { java.lang.annotation.ElementType.TYPE })
 @Documented
 @Import(AerospikeHttpSessionConfiguration.class)
 @Configuration
 public @interface EnableAerospikeHttpSession {
-	int maxInactiveIntervalInSeconds() default 1800;
+    int maxInactiveIntervalInSeconds() default 1800;
 }

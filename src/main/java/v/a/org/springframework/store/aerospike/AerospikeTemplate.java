@@ -17,11 +17,8 @@ package v.a.org.springframework.store.aerospike;
 
 import java.util.Set;
 
-import javax.annotation.PostConstruct;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
 import com.aerospike.client.Bin;
@@ -46,15 +43,11 @@ import com.aerospike.client.policy.WritePolicy;
  * <b>This is the central class in Aerospike support</b>.
  * 
  * @author Vlad Aleksandrov
- * @param <K>
- *            the Aerospike key type against which the template works
  */
-@Component("aerospikeTemplate")
 public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOperations<String> {
 
     private final static Bin[] BIN_ARRAY_TYPE = new Bin[0];
     private final Logger log = LoggerFactory.getLogger(this.getClass());
-    
 
     private String namespace;
     private String setname;
@@ -63,7 +56,6 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
     private WritePolicy writePolicy;
     private Policy readPolicy;
 
-    @PostConstruct
     public void init() {
         deletePolicy = new WritePolicy();
         deletePolicy.commitLevel = CommitLevel.COMMIT_MASTER;
