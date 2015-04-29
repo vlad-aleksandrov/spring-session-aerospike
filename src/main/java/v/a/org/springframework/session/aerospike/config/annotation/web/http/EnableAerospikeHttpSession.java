@@ -60,4 +60,6 @@ import com.aerospike.client.async.IAsyncClient;
 @Configuration
 public @interface EnableAerospikeHttpSession {
     int maxInactiveIntervalInSeconds() default 1800;
+    String namespace() default "cache";
+    String setname() default "httpsession";
 }

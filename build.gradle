@@ -45,11 +45,13 @@ dependencies {
 	compile "de.javakaffee:kryo-serializers:$kryoSerializersVersion"
 	compile "org.iq80.snappy:snappy:$snappyVersion"
 
-    // Aerospire Driver
+    // Aerospike Driver
     compile "com.aerospike:aerospike-client:$aerospikeVersion"
 
     // Testing
     testCompile "junit:junit:$junitVersion"
+    testCompile "org.springframework:spring-test:$springVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
 }
 
 test {

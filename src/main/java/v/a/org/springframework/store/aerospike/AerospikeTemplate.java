@@ -49,7 +49,14 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
     private final static Bin[] BIN_ARRAY_TYPE = new Bin[0];
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
+    /**
+     * Namespace name.
+     */
     private String namespace;
+    
+    /**
+     * Aerospike name for session data.
+     */
     private String setname;
 
     private WritePolicy deletePolicy;
@@ -57,6 +64,9 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
     private Policy readPolicy;
 
     public void init() {
+        Assert.hasLength(namespace, "Aerospike 'namespace' name for session data is not configured");
+        Assert.hasLength(setname, "Aerospike 'setname' name for session data is not configured");
+
         deletePolicy = new WritePolicy();
         deletePolicy.commitLevel = CommitLevel.COMMIT_MASTER;
 
@@ -119,6 +129,14 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         Assert.notNull(key, "key can't be null");
         final Key recordKey = new Key(namespace, setname, key);
         return getAerospikeClient().get(readPolicy, recordKey);
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
+    public void setSetname(String setname) {
+        this.setname = setname;
     }
 
 }

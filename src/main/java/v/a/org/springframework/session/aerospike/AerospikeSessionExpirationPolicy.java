@@ -19,7 +19,7 @@ package v.a.org.springframework.session.aerospike;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import v.a.org.springframework.session.aerospike.AerospikeOperationsSessionRepository.AerospikeSession;
+import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
 import v.a.org.springframework.store.aerospike.AerospikeOperations;
 
 /**

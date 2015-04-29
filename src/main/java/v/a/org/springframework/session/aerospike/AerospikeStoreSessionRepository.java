@@ -143,10 +143,10 @@ import com.aerospike.client.Record;
  *
  * @author Vlad Aleksandrov
  */
-public class AerospikeOperationsSessionRepository implements
-        SessionRepository<AerospikeOperationsSessionRepository.AerospikeSession> {
+public class AerospikeStoreSessionRepository implements
+        SessionRepository<AerospikeStoreSessionRepository.AerospikeSession> {
 
-    private static final Logger log = LoggerFactory.getLogger(AerospikeOperationsSessionRepository.class);
+    private static final Logger log = LoggerFactory.getLogger(AerospikeStoreSessionRepository.class);
 
     /**
      * The bin name representing {@link org.springframework.session.ExpiringSession#getCreationTime()}
@@ -193,7 +193,7 @@ public class AerospikeOperationsSessionRepository implements
      *            The {@link AerospikeOperations} to use for managing the sessions. Cannot be null.
      */
     @SuppressWarnings("rawtypes")
-    public AerospikeOperationsSessionRepository(AerospikeOperations<String> sessionAerospikeOperations) {
+    public AerospikeStoreSessionRepository(AerospikeOperations<String> sessionAerospikeOperations) {
         Assert.notNull(sessionAerospikeOperations, "sessionAerospikeOperations cannot be null");
         this.sessionAerospikeOperations = sessionAerospikeOperations;
         this.expirationPolicy = new AerospikeSessionExpirationPolicy(sessionAerospikeOperations);

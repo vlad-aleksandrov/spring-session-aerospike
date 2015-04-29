@@ -36,7 +36,7 @@ import org.springframework.session.web.http.HttpSessionStrategy;
 import org.springframework.session.web.http.SessionRepositoryFilter;
 import org.springframework.util.ClassUtils;
 
-import v.a.org.springframework.session.aerospike.AerospikeOperationsSessionRepository;
+import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository;
 import v.a.org.springframework.store.aerospike.AerospikeTemplate;
 
 import com.aerospike.client.IAerospikeClient;
@@ -58,25 +58,35 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     private ClassLoader beanClassLoader;
 
     private Integer maxInactiveIntervalInSeconds = 1800;
+    /**
+     * Default Aerospike namespace is <code>cache</code>.
+     */
+    private String namespace = "cache";
+    /**
+     * Default Aerospike logical set name is <code>httpsession</code>.
+     */
+    private String setname = "httpsession";
 
     private HttpSessionStrategy httpSessionStrategy;
 
-    @Autowired
+    @Inject
     private ApplicationEventPublisher eventPublisher;
 
-    @Bean
+    @Bean(initMethod = "init")
     @Inject
-    public AerospikeTemplate sessionRedisTemplate(final IAerospikeClient aerospikeClient, final IAsyncClient asyncAerospikeClient) {    
+    public AerospikeTemplate sessionAerospikeTemplate(final IAerospikeClient aerospikeClient, final IAsyncClient asyncAerospikeClient) {    
         final AerospikeTemplate template = new AerospikeTemplate();
         template.setAerospikeClient(aerospikeClient);
         template.setAerospikeAsyncClient(asyncAerospikeClient);
+        template.setNamespace(namespace);
+        template.setSetname(setname);
         return template;
     }
 
     @Bean
     @Inject
-    public AerospikeOperationsSessionRepository sessionRepository(final AerospikeTemplate aerospikeTemplate) {
-        final AerospikeOperationsSessionRepository sessionRepository = new AerospikeOperationsSessionRepository(aerospikeTemplate);
+    public AerospikeStoreSessionRepository sessionRepository(final AerospikeTemplate aerospikeTemplate) {
+        final AerospikeStoreSessionRepository sessionRepository = new AerospikeStoreSessionRepository(aerospikeTemplate);
         sessionRepository.setDefaultMaxInactiveInterval(maxInactiveIntervalInSeconds);
         return sessionRepository;
     }
@@ -117,6 +127,8 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
             }
         }
         maxInactiveIntervalInSeconds = enableAttrs.getNumber("maxInactiveIntervalInSeconds");
+        namespace = enableAttrs.getString("namespace");
+        setname = enableAttrs.getString("setname");
     }
 
     @Autowired(required = false)
