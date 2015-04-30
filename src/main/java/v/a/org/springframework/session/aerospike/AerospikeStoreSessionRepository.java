@@ -149,6 +149,11 @@ public class AerospikeStoreSessionRepository implements
     private static final Logger log = LoggerFactory.getLogger(AerospikeStoreSessionRepository.class);
 
     /**
+     * The bin name representing {@link org.springframework.session.ExpiringSession#getId()}
+     */
+    static final String SESSION_ID_BIN = "sessionId";
+
+    /**
      * The bin name representing {@link org.springframework.session.ExpiringSession#getCreationTime()}
      */
     static final String CREATION_TIME_BIN = "created";
@@ -217,10 +222,10 @@ public class AerospikeStoreSessionRepository implements
         final Set<Bin> binsToSave = new HashSet<>();
 
         if (!sessionAerospikeOperations.hasKey(sessionId)) {
-            // newly created session - save "created", "max inactive interval"
+            // newly created session - save "created", "max inactive interval" and "id" itself
             binsToSave.add(new Bin(CREATION_TIME_BIN, session.getCreationTime()));
             binsToSave.add(new Bin(MAX_INACTIVE_BIN, session.getMaxInactiveIntervalInSeconds()));
-            binsToSave.add(new Bin(EXPIRED_BIN, session.getExpirationTimestamp()));
+            binsToSave.add(new Bin(SESSION_ID_BIN, sessionId));
         }
         // always updated last access timestamp
         binsToSave.add(new Bin(LAST_ACCESSED_BIN, session.getLastAccessedTime()));
@@ -291,11 +296,11 @@ public class AerospikeStoreSessionRepository implements
 
     public void delete(final String sessionId) {
         if (this.sessionAerospikeOperations.hasKey(sessionId)) {
-            log.debug("Removeing session {}", sessionId);
+            log.debug("Removing session '{}'", sessionId);
             this.sessionAerospikeOperations.delete(sessionId);
             this.expirationPolicy.onDelete(sessionId);
         } else {
-            log.warn("Session {} does not exist in storage", sessionId);
+            log.warn("Session '{}' does not exist in storage", sessionId);
         }
     }
 
@@ -337,6 +342,7 @@ public class AerospikeStoreSessionRepository implements
         AerospikeSession(final MapSession cached) {
             Assert.notNull("MapSession cannot be null");
             this.cached = cached;
+            updateExpirationTimestamp(cached.getLastAccessedTime(), cached.getMaxInactiveIntervalInSeconds());
         }
 
         public void setLastAccessedTime(long lastAccessedTime) {
@@ -383,22 +389,29 @@ public class AerospikeStoreSessionRepository implements
             updated = true;
         }
 
+        /**
+         * Removes attribute and sets "updated" flag if the attribute did exist in session. 
+         */
         public void removeAttribute(String attributeName) {
-            cached.removeAttribute(attributeName);
-            updated = true;
+            if (cached.getAttribute(attributeName) != null) {
+                cached.removeAttribute(attributeName);
+                updated = true;
+            }
         }
 
         public Long getExpirationTimestamp() {
             return expirationTimestamp;
         }
 
+        /**
+         * Sets expiration timestamp only if session is "expirable". 
+         * @param lastAccessedTime
+         * @param maxInactiveIntervalInSeconds
+         */
         private void updateExpirationTimestamp(long lastAccessedTime, int maxInactiveIntervalInSeconds) {
-            if (maxInactiveIntervalInSeconds < 0) {
-                expirationTimestamp = Long.MAX_VALUE;
-            } else {
+            if (maxInactiveIntervalInSeconds > 0) {
                 expirationTimestamp = lastAccessedTime + TimeUnit.SECONDS.toMillis(maxInactiveIntervalInSeconds);
-            }
-
+            } 
         }
 
         public boolean isUpdated() {

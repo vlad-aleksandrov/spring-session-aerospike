@@ -1,12 +1,12 @@
 /*
  * Copyright 2002-2015 the original author or authors.
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,14 +15,10 @@
  */
 package v.a.org.springframework.session.aerospike;
 
-import static org.fest.assertions.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.session.data.redis.RedisOperationsSessionRepository.CREATION_TIME_ATTR;
-import static org.springframework.session.data.redis.RedisOperationsSessionRepository.LAST_ACCESSED_ATTR;
-import static org.springframework.session.data.redis.RedisOperationsSessionRepository.MAX_INACTIVE_ATTR;
-import static org.springframework.session.data.redis.RedisOperationsSessionRepository.getKey;
-import static org.springframework.session.data.redis.RedisOperationsSessionRepository.getSessionAttrNameKey;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -38,242 +34,152 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.BoundHashOperations;
-import org.springframework.data.redis.core.BoundSetOperations;
-import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.session.ExpiringSession;
 import org.springframework.session.MapSession;
-import org.springframework.session.data.redis.RedisOperationsSessionRepository.RedisSession;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import com.aerospike.client.Bin;
+
+import v.a.org.springframework.store.aerospike.AerospikeOperations;
+import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
 
 @RunWith(MockitoJUnitRunner.class)
-@SuppressWarnings({"unchecked","rawtypes"})
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class AerospikeStoreSessionRepositoryTests {
-	@Mock
-	RedisConnectionFactory factory;
-	@Mock
-	RedisConnection connection;
-	@Mock
-	RedisOperations redisOperations;
-	@Mock
-	BoundHashOperations<String, Object, Object> boundHashOperations;
-	@Mock
-	BoundSetOperations<String, String> boundSetOperations;
-	@Captor
-	ArgumentCaptor<Map<String,Object>> delta;
 
-	private RedisOperationsSessionRepository redisRepository;
+    @Mock
+    AerospikeOperations aerospikeOperations;
 
-	@Before
-	public void setup() {
-		this.redisRepository = new RedisOperationsSessionRepository(redisOperations);
-	}
+    @Captor
+    ArgumentCaptor<String> capturedSessionId;
+    
+    @Captor
+    ArgumentCaptor<Set<Bin>> capturedBinsToSave;
 
-	@Test(expected=IllegalArgumentException.class)
-	public void constructorNullConnectionFactory() {
-		new RedisOperationsSessionRepository((RedisConnectionFactory)null);
-	}
+    private AerospikeStoreSessionRepository aerospikeRepository;
 
-	// gh-61
-	@Test
-	public void constructorConnectionFactory() {
-		redisRepository = new RedisOperationsSessionRepository(factory);
-		RedisSession session = redisRepository.createSession();
+    @Before
+    public void setup() {
+        this.aerospikeRepository = new AerospikeStoreSessionRepository(aerospikeOperations);
+    }
 
-		when(factory.getConnection()).thenReturn(connection);
+    @Test(expected = IllegalArgumentException.class)
+    public void constructorNullConnectionFactory() {
+        new AerospikeStoreSessionRepository((AerospikeOperations) null);
+    }
 
-		redisRepository.save(session);
-	}
+    @Test
+    public void constructorConnectionFactory() {
+        aerospikeRepository = new AerospikeStoreSessionRepository(aerospikeOperations);
+        AerospikeSession session = aerospikeRepository.createSession();
+        session.setAttribute("K", "V");
+        aerospikeRepository.save(session);
+    }
+    
+    @Test
+    public void createSessionDefaultMaxInactiveInterval() throws Exception {
+        ExpiringSession session = aerospikeRepository.createSession();
+        assertThat(session.getMaxInactiveIntervalInSeconds(), is(new MapSession().getMaxInactiveIntervalInSeconds()));
+    }
+    
+    @Test
+    public void createSessionCustomMaxInactiveInterval() throws Exception {
+        int interval = 1;
+        aerospikeRepository.setDefaultMaxInactiveInterval(interval);
+        ExpiringSession session = aerospikeRepository.createSession();
+        assertThat(session.getMaxInactiveIntervalInSeconds(), is(interval));
+    }
 
-	@Test
-	public void createSessionDefaultMaxInactiveInterval() throws Exception {
-		ExpiringSession session = redisRepository.createSession();
-		assertThat(session.getMaxInactiveIntervalInSeconds()).isEqualTo(new MapSession().getMaxInactiveIntervalInSeconds());
-	}
+    @Test
+    public void saveNewSession_withAttributes() {
+        AerospikeSession session = aerospikeRepository.createSession();
+        session.setAttribute("A", "B");
+        session.setAttribute("C", "D");
+        aerospikeRepository.save(session);        
+        verify(aerospikeOperations).persist(capturedSessionId.capture(), capturedBinsToSave.capture());
+        
+        assertThat(capturedSessionId.getValue(), is(session.getId()));
+        // save 6 bins: id, created, max inactive, last access, expired and serialized attributes
+        assertThat(capturedBinsToSave.getValue().size(), is(6));
+    }
+    
+    @Test
+    public void saveNewSession_noAttributes() {
+        AerospikeSession session = aerospikeRepository.createSession();
+        aerospikeRepository.save(session);        
+        verify(aerospikeOperations).persist(capturedSessionId.capture(), capturedBinsToSave.capture());
+        
+        assertThat(capturedSessionId.getValue(), is(session.getId()));
+        // save 5 bins: id, created, max inactive, last access, expired
+        assertThat(capturedBinsToSave.getValue().size(), is(5));
+    }
+    
+    @Test
+    public void saveLastAccessChanged() {
+        AerospikeSession session = aerospikeRepository.createSession();
+        session.setLastAccessedTime(12345678L);
+        aerospikeRepository.save(session);  
+        
+        verify(aerospikeOperations).persist(capturedSessionId.capture(), capturedBinsToSave.capture());
+        
+        Set<Bin> binsToSave = capturedBinsToSave.getValue();
+        for (Bin bin : binsToSave) {
+            if (bin.name.equals(AerospikeStoreSessionRepository.LAST_ACCESSED_BIN)) {
+                assertThat(bin.value.toLong(), is(12345678L));
+            }
+        }
+    }
+    
+    @Test
+    public void session_updatedExpiration() {
+        AerospikeSession session = aerospikeRepository.createSession();
+        session.setLastAccessedTime(0L);
+        // default max inactive is 1800 sec
+        assertThat(session.getExpirationTimestamp(), is(TimeUnit.SECONDS.toMillis(1800)));
+    }
+    
+    @Test
+    public void session_updatedAfterAttrubuteAdded() {
+        AerospikeSession session = aerospikeRepository.createSession();
+        session.setAttribute("A", "B");
+        assertThat(session.isUpdated(), is(true));
+    }
+    
+    @Test
+    public void session_updatedAfterAttrubuteDeleted() {
+        AerospikeSession session = aerospikeRepository.createSession();
+        session.setAttribute("A", "B");
+        // reset 'updated' flag to simulate fresh loaded session
+        ReflectionTestUtils.setField(session, "updated", false);
+        session.removeAttribute("notExist");
+        // still not updated, because attr does not exist in session
+        assertThat(session.isUpdated(), is(false));
+        session.removeAttribute("A");
+        assertThat(session.isUpdated(), is(true));
+        assertThat(session.getAttribute("A"), nullValue());
+    }
+    
+    @Test
+    public void delete_notExist() {
+        String id = "RandomSessionId";
+        
+        when(aerospikeOperations.hasKey(id)).thenReturn(false);
+        
+        aerospikeRepository.delete(id);
+        verify(aerospikeOperations, times(1)).hasKey(id);
+        verify(aerospikeOperations, times(0)).delete(id);
+    }
+    
+    @Test
+    public void delete_exist() {
+        String id = "RandomSessionId";
+        
+        when(aerospikeOperations.hasKey(id)).thenReturn(true);
+        
+        aerospikeRepository.delete(id);
+        verify(aerospikeOperations, times(1)).hasKey(id);
+        verify(aerospikeOperations, times(1)).delete(id);
+    }
 
-	@Test
-	public void createSessionCustomMaxInactiveInterval() throws Exception {
-		int interval = 1;
-		redisRepository.setDefaultMaxInactiveInterval(interval);
-		ExpiringSession session = redisRepository.createSession();
-		assertThat(session.getMaxInactiveIntervalInSeconds()).isEqualTo(interval);
-	}
 
-	@Test
-	public void saveNewSession() {
-		RedisSession session = redisRepository.createSession();
-		when(redisOperations.boundHashOps(getKey(session.getId()))).thenReturn(boundHashOperations);
-		when(redisOperations.boundSetOps(anyString())).thenReturn(boundSetOperations);
-
-		redisRepository.save(session);
-
-		Map<String,Object> delta = getDelta();
-		assertThat(delta.size()).isEqualTo(3);
-		Object creationTime = delta.get(CREATION_TIME_ATTR);
-		assertThat(creationTime).isInstanceOf(Long.class);
-		assertThat(delta.get(MAX_INACTIVE_ATTR)).isEqualTo(MapSession.DEFAULT_MAX_INACTIVE_INTERVAL_SECONDS);
-		assertThat(delta.get(LAST_ACCESSED_ATTR)).isEqualTo(creationTime);
-	}
-
-	@Test
-	public void saveLastAccessChanged() {
-		RedisSession session = redisRepository.new RedisSession(new MapSession());
-		session.setLastAccessedTime(12345678L);
-		when(redisOperations.boundHashOps(getKey(session.getId()))).thenReturn(boundHashOperations);
-		when(redisOperations.boundSetOps(anyString())).thenReturn(boundSetOperations);
-
-		redisRepository.save(session);
-
-		assertThat(getDelta()).isEqualTo(map(LAST_ACCESSED_ATTR, session.getLastAccessedTime()));
-	}
-
-	@Test
-	public void saveSetAttribute() {
-		String attrName = "attrName";
-		RedisSession session = redisRepository.new RedisSession(new MapSession());
-		session.setAttribute(attrName, "attrValue");
-		when(redisOperations.boundHashOps(getKey(session.getId()))).thenReturn(boundHashOperations);
-		when(redisOperations.boundSetOps(anyString())).thenReturn(boundSetOperations);
-
-		redisRepository.save(session);
-
-		assertThat(getDelta()).isEqualTo(map(getSessionAttrNameKey(attrName), session.getAttribute(attrName)));
-	}
-
-	@Test
-	public void saveRemoveAttribute() {
-		String attrName = "attrName";
-		RedisSession session = redisRepository.new RedisSession(new MapSession());
-		session.removeAttribute(attrName);
-		when(redisOperations.boundHashOps(getKey(session.getId()))).thenReturn(boundHashOperations);
-		when(redisOperations.boundSetOps(anyString())).thenReturn(boundSetOperations);
-
-		redisRepository.save(session);
-
-		assertThat(getDelta()).isEqualTo(map(getSessionAttrNameKey(attrName), null));
-	}
-
-	@Test
-	public void redisSessionGetAttributes() {
-		String attrName = "attrName";
-		RedisSession session = redisRepository.new RedisSession(new MapSession());
-		assertThat(session.getAttributeNames()).isEmpty();
-		session.setAttribute(attrName, "attrValue");
-		assertThat(session.getAttributeNames()).containsOnly(attrName);
-		session.removeAttribute(attrName);
-		assertThat(session.getAttributeNames()).isEmpty();
-	}
-
-	@Test
-	public void delete() {
-		String attrName = "attrName";
-		MapSession expected = new MapSession();
-		expected.setLastAccessedTime(System.currentTimeMillis() - 60000);
-		expected.setAttribute(attrName, "attrValue");
-		when(redisOperations.boundHashOps(getKey(expected.getId()))).thenReturn(boundHashOperations);
-		Map map = map(
-				getSessionAttrNameKey(attrName), expected.getAttribute(attrName),
-				CREATION_TIME_ATTR, expected.getCreationTime(),
-				MAX_INACTIVE_ATTR, expected.getMaxInactiveIntervalInSeconds(),
-				LAST_ACCESSED_ATTR, expected.getLastAccessedTime());
-		when(boundHashOperations.entries()).thenReturn(map);
-		when(redisOperations.boundSetOps(anyString())).thenReturn(boundSetOperations);
-
-		String id = expected.getId();
-		redisRepository.delete(id);
-		verify(redisOperations).delete(getKey(id));
-	}
-
-	@Test
-	public void deleteNullSession() {
-		when(redisOperations.boundSetOps(anyString())).thenReturn(boundSetOperations);
-		when(redisOperations.boundHashOps(anyString())).thenReturn(boundHashOperations);
-
-		String id = "abc";
-		redisRepository.delete(id);
-		verify(redisOperations,times(0)).delete(anyString());
-		verify(redisOperations,times(0)).delete(anyString());
-	}
-
-	@Test
-	public void getSessionNotFound() {
-		String id = "abc";
-		when(redisOperations.boundHashOps(getKey(id))).thenReturn(boundHashOperations);
-		when(boundHashOperations.entries()).thenReturn(map());
-
-		assertThat(redisRepository.getSession(id)).isNull();
-	}
-
-	@Test
-	public void getSessionFound() {
-		String attrName = "attrName";
-		MapSession expected = new MapSession();
-		expected.setLastAccessedTime(System.currentTimeMillis() - 60000);
-		expected.setAttribute(attrName, "attrValue");
-		when(redisOperations.boundHashOps(getKey(expected.getId()))).thenReturn(boundHashOperations);
-		Map map = map(
-				getSessionAttrNameKey(attrName), expected.getAttribute(attrName),
-				CREATION_TIME_ATTR, expected.getCreationTime(),
-				MAX_INACTIVE_ATTR, expected.getMaxInactiveIntervalInSeconds(),
-				LAST_ACCESSED_ATTR, expected.getLastAccessedTime());
-		when(boundHashOperations.entries()).thenReturn(map);
-
-		long now = System.currentTimeMillis();
-		RedisSession session = redisRepository.getSession(expected.getId());
-		assertThat(session.getId()).isEqualTo(expected.getId());
-		assertThat(session.getAttributeNames()).isEqualTo(expected.getAttributeNames());
-		assertThat(session.getAttribute(attrName)).isEqualTo(expected.getAttribute(attrName));
-		assertThat(session.getCreationTime()).isEqualTo(expected.getCreationTime());
-		assertThat(session.getMaxInactiveIntervalInSeconds()).isEqualTo(expected.getMaxInactiveIntervalInSeconds());
-		assertThat(session.getLastAccessedTime()).isGreaterThanOrEqualTo(now);
-
-	}
-
-	@Test
-	public void getSessionExpired() {
-		String expiredId = "expired-id";
-		when(redisOperations.boundHashOps(getKey(expiredId))).thenReturn(boundHashOperations);
-		Map map = map(
-				MAX_INACTIVE_ATTR, 1,
-				LAST_ACCESSED_ATTR, System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5));
-		when(boundHashOperations.entries()).thenReturn(map);
-
-		assertThat(redisRepository.getSession(expiredId)).isNull();
-	}
-
-	@Test
-	public void cleanupExpiredSessions() {
-		String expiredId = "expired-id";
-		when(redisOperations.boundHashOps(getKey(expiredId))).thenReturn(boundHashOperations);
-		when(redisOperations.boundSetOps(anyString())).thenReturn(boundSetOperations);
-
-		Set<String> expiredIds = new HashSet<String>(Arrays.asList("expired-key1","expired-key2"));
-		when(boundSetOperations.members()).thenReturn(expiredIds);
-
-		redisRepository.cleanupExpiredSessions();
-
-		for(String id : expiredIds) {
-			String expiredKey = RedisOperationsSessionRepository.BOUNDED_HASH_KEY_PREFIX + id;
-			// https://github.com/spring-projects/spring-session/issues/93
-			verify(redisOperations).hasKey(expiredKey);
-		}
-	}
-
-	private Map map(Object...objects) {
-		Map<String,Object> result = new HashMap<String,Object>();
-		if(objects == null) {
-			return result;
-		}
-		for(int i = 0; i < objects.length; i += 2) {
-			result.put((String)objects[i], objects[i+1]);
-		}
-		return result;
-	}
-
-	private Map<String,Object> getDelta() {
-		verify(boundHashOperations).putAll(delta.capture());
-		return delta.getValue();
-	}
 }

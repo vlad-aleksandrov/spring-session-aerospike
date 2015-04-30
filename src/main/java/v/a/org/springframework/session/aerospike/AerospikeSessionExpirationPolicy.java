@@ -29,7 +29,7 @@ import v.a.org.springframework.store.aerospike.AerospikeOperations;
  */
 final class AerospikeSessionExpirationPolicy {
 
-    private static final Logger log = LoggerFactory.getLogger(AerospikeSessionExpirationPolicy.class);
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final AerospikeOperations<String> sessionAerospikeOperations;
 
@@ -38,11 +38,13 @@ final class AerospikeSessionExpirationPolicy {
         this.sessionAerospikeOperations = sessionAerospikeOperations;
     }
 
-    public void onDelete(String sessionId) {
+    public void onDelete(final String sessionId) {
+        log.debug("Session '{}' deleted.");
         // TODO
     }
 
     public void cleanExpiredSessions() {
+        log.debug("Expired sessions cleanup");
         // TODO
     }
 
