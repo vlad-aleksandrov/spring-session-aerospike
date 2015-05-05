@@ -275,7 +275,7 @@ public class AerospikeStoreSessionRepository implements
         loaded.setId(id);
         loaded.setCreationTime(sessionRecord.getLong(CREATION_TIME_BIN));
         loaded.setMaxInactiveIntervalInSeconds(sessionRecord.getInt(MAX_INACTIVE_BIN));
-        loaded.setLastAccessedTime(sessionRecord.getInt(LAST_ACCESSED_BIN));
+        loaded.setLastAccessedTime(sessionRecord.getLong(LAST_ACCESSED_BIN));
         if (!allowExpired && loaded.isExpired()) {
             return null;
         }
