@@ -19,7 +19,6 @@ package v.a.org.springframework.session.aerospike;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -30,6 +29,7 @@ import org.springframework.session.ExpiringSession;
 import org.springframework.session.MapSession;
 import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
+import org.springframework.session.data.redis.SessionMessageListener;
 import org.springframework.session.events.SessionDestroyedEvent;
 import org.springframework.session.web.http.SessionRepositoryFilter;
 import org.springframework.util.Assert;
@@ -390,7 +390,7 @@ public class AerospikeStoreSessionRepository implements
         }
 
         public void setAttribute(String attributeName, Object attributeValue) {
-            if (!Objects.equals(cached.getAttribute(attributeName), attributeValue)) {
+            if (!Attributes.areEqual(cached.getAttribute(attributeName), attributeValue)) {
                 cached.setAttribute(attributeName, attributeValue);
                 updated = true;
             }
@@ -425,6 +425,8 @@ public class AerospikeStoreSessionRepository implements
         public boolean isUpdated() {
             return updated;
         }
+
+
     }
 
 }

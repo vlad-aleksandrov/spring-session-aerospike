@@ -15,15 +15,13 @@
  */
 package v.a.org.springframework.session.aerospike;
 
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -38,10 +36,10 @@ import org.springframework.session.ExpiringSession;
 import org.springframework.session.MapSession;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.aerospike.client.Bin;
-
-import v.a.org.springframework.store.aerospike.AerospikeOperations;
 import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
+import v.a.org.springframework.store.aerospike.AerospikeOperations;
+
+import com.aerospike.client.Bin;
 
 @RunWith(MockitoJUnitRunner.class)
 @SuppressWarnings({ "unchecked", "rawtypes" })
