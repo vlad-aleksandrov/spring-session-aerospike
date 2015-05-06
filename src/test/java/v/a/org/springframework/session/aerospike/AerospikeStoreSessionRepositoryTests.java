@@ -143,6 +143,14 @@ public class AerospikeStoreSessionRepositoryTests {
         AerospikeSession session = aerospikeRepository.createSession();
         session.setAttribute("A", "B");
         assertThat(session.isUpdated(), is(true));
+        // reset 'updated' flag to simulate fresh loaded session
+        ReflectionTestUtils.setField(session, "updated", false);
+        // set the same value again, session should not be updated
+        session.setAttribute("A", "B");
+        assertThat(session.isUpdated(), is(false));
+        // set updated attribute value
+        session.setAttribute("A", "C");
+        assertThat(session.isUpdated(), is(true));
     }
     
     @Test

@@ -19,6 +19,7 @@ package v.a.org.springframework.session.aerospike;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -146,7 +147,7 @@ import com.aerospike.client.Record;
 public class AerospikeStoreSessionRepository implements
         SessionRepository<AerospikeStoreSessionRepository.AerospikeSession> {
 
-    private static final Logger log = LoggerFactory.getLogger(AerospikeStoreSessionRepository.class);
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     /**
      * The bin name representing {@link org.springframework.session.ExpiringSession#getId()}
@@ -222,10 +223,13 @@ public class AerospikeStoreSessionRepository implements
         final Set<Bin> binsToSave = new HashSet<>();
 
         if (!sessionAerospikeOperations.hasKey(sessionId)) {
+            log.trace("Save new session {}", sessionId);
             // newly created session - save "created", "max inactive interval" and "id" itself
             binsToSave.add(new Bin(CREATION_TIME_BIN, session.getCreationTime()));
             binsToSave.add(new Bin(MAX_INACTIVE_BIN, session.getMaxInactiveIntervalInSeconds()));
             binsToSave.add(new Bin(SESSION_ID_BIN, sessionId));
+        } else {
+            log.trace("Update existing session {}", sessionId);
         }
         // always updated last access timestamp
         binsToSave.add(new Bin(LAST_ACCESSED_BIN, session.getLastAccessedTime()));
@@ -234,6 +238,7 @@ public class AerospikeStoreSessionRepository implements
             binsToSave.add(new Bin(EXPIRED_BIN, session.getExpirationTimestamp()));
         }
         if (session.isUpdated()) {
+            log.trace("Serialize and save updated attributes for session {}", sessionId);
             final HashMap<String, Object> attributesToSave = new HashMap<>();
             final Set<String> allNames = session.getAttributeNames();
             for (String name : allNames) {
@@ -385,12 +390,14 @@ public class AerospikeStoreSessionRepository implements
         }
 
         public void setAttribute(String attributeName, Object attributeValue) {
-            cached.setAttribute(attributeName, attributeValue);
-            updated = true;
+            if (!Objects.equals(cached.getAttribute(attributeName), attributeValue)) {
+                cached.setAttribute(attributeName, attributeValue);
+                updated = true;
+            }
         }
 
         /**
-         * Removes attribute and sets "updated" flag if the attribute did exist in session. 
+         * Removes attribute and sets "updated" flag if the attribute did exist in session.
          */
         public void removeAttribute(String attributeName) {
             if (cached.getAttribute(attributeName) != null) {
@@ -404,14 +411,15 @@ public class AerospikeStoreSessionRepository implements
         }
 
         /**
-         * Sets expiration timestamp only if session is "expirable". 
+         * Sets expiration timestamp only if session is "expirable".
+         * 
          * @param lastAccessedTime
          * @param maxInactiveIntervalInSeconds
          */
         private void updateExpirationTimestamp(long lastAccessedTime, int maxInactiveIntervalInSeconds) {
             if (maxInactiveIntervalInSeconds > 0) {
                 expirationTimestamp = lastAccessedTime + TimeUnit.SECONDS.toMillis(maxInactiveIntervalInSeconds);
-            } 
+            }
         }
 
         public boolean isUpdated() {
