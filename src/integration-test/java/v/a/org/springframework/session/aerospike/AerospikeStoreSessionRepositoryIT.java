@@ -15,13 +15,16 @@
  */
 package v.a.org.springframework.session.aerospike;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.assertThat;
+
 import javax.inject.Inject;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
@@ -30,6 +33,8 @@ import org.springframework.session.SessionRepository;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
+
+import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
 
 import v.a.org.springframework.session.aerospike.config.annotation.web.http.EnableAerospikeHttpSession;
 
@@ -44,18 +49,61 @@ import com.aerospike.client.policy.ClientPolicy;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration
 @WebAppConfiguration
-// <S extends Session>
 public class AerospikeStoreSessionRepositoryIT {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());   
 
     @Inject
-    private SessionRepository repository;
+    private SessionRepository<AerospikeStoreSessionRepository.AerospikeSession> repository;
 
     @Test
     public void when_contextStarted_thenNoExceptions() {
         log.info("Spring context loaded. Session repository: {}", repository);
     }
+        
+    @Test
+    public void createSession() {
+        AerospikeSession s = repository.createSession();
+        log.info("New session: {}", s.getId());
+        assertThat(s, notNullValue());
+        assertThat(s.getId(), notNullValue());
+    }
+    
+    @Test
+    public void save_then_load() {
+        final AerospikeSession s = repository.createSession();
+        final String sessionId = s.getId();
+        s.setAttribute("A", "XYZ");
+        log.info("New session to store: {}", sessionId);
+        repository.save(s);
+        
+        final AerospikeSession loadedSession = repository.getSession(sessionId);
+                
+        assertThat(loadedSession, notNullValue());
+        assertThat(loadedSession.getId(), is(sessionId));
+        assertThat((String)loadedSession.getAttribute("A"), is("XYZ"));
+
+    }
+    
+    @Test
+    public void delete_notExist_thenNoErrors() {
+        repository.delete("notExist");
+    }
+    
+    @Test
+    public void delete() {        
+        final AerospikeSession s = repository.createSession();
+        final String sessionId = s.getId();
+        s.setAttribute("A", "XYZ");
+        repository.save(s);
+
+        final AerospikeSession loadedSession = repository.getSession(sessionId);                
+        assertThat(loadedSession, notNullValue());
+        repository.delete(sessionId);
+        // should not exist in repo anymore 
+        assertThat(repository.getSession(sessionId), nullValue());
+    }
+
 
     @Configuration
     @PropertySource(value = "classpath:/application.properties")
