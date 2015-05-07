@@ -1,0 +1,10 @@
+apply plugin: 'scala'
+
+dependencies {
+    compile "org.scala-lang:scala-library:$scalaVersion"
+    compile "com.typesafe.akka:akka-actor_2.11:$akkaVersion"
+}    
+
+tasks.withType(ScalaCompile) {
+  scalaCompileOptions.useAnt = false
+}

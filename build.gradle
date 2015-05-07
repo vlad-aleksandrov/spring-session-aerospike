@@ -1,13 +1,8 @@
 description = 'Spring Session Aerospike'
-group = 'v.a.org.springframework.session.aerospike'
 
-apply plugin: 'java'
-apply from:   "${rootProject.projectDir}/publish-maven.gradle"
-apply plugin: 'eclipse'
-apply plugin: 'idea'
+apply from:   "${rootProject.projectDir}/gradle/java.gradle"
+apply from:   "${rootProject.projectDir}/gradle/publish-maven.gradle"
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
 
 jar {
     manifest.attributes["Created-By"] = "${System.getProperty("java.version")} (${System.getProperty("java.specification.vendor")})"
@@ -15,12 +10,8 @@ jar {
     manifest.attributes['Implementation-Version'] = project.version
 }
 
-repositories {
-    mavenCentral()
-    jcenter()
-}
-
 dependencies {
+
     // Logging
     compile "org.slf4j:slf4j-api:$slf4jVersion"
     testRuntime "log4j:log4j:$log4jVersion"
@@ -66,6 +57,7 @@ uploadArchives {
        }
     }
 }
+
 
 task wrapper(type: Wrapper) {
 	description = 'Generates gradlew[.bat] scripts'
