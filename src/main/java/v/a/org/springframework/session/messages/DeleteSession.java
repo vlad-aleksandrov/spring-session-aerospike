@@ -15,16 +15,13 @@
  */
 package v.a.org.springframework.session.messages;
 
-public abstract class BaseSessionIdentity {
-    
-    private final String id;
-    
-    public BaseSessionIdentity(String id) {
-        this.id = id;
-    }
+/**
+ * Delete sessions event.
+ *
+ */
+public class DeleteSession extends BaseSessionIdentity {
 
-    public String getId() {
-        return id;
+    public DeleteSession(String id) {
+        super(id);
     }
-
 }

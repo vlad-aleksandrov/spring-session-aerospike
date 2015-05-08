@@ -19,6 +19,7 @@ import java.util.Set;
 
 import com.aerospike.client.Bin;
 import com.aerospike.client.Record;
+import com.aerospike.client.query.IndexType;
 
 /**
  * Interface that specified a basic set of Aerospike operations, implemented by {@link AerospikeTemplate}. Not often used but a
@@ -49,5 +50,13 @@ public interface AerospikeOperations<K> {
     void persist(K key, Set<Bin> data);
 
     Record fetch(K key);
+    
+    /**
+     * Creates secondary index.
+     * @param binName
+     * @param indexName
+     * @param indexType
+     */
+    void createIndex(String binName, String indexName, IndexType indexType);
 
 }

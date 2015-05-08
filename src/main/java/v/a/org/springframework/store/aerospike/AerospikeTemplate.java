@@ -28,6 +28,8 @@ import com.aerospike.client.policy.CommitLevel;
 import com.aerospike.client.policy.Policy;
 import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.WritePolicy;
+import com.aerospike.client.query.IndexType;
+import com.aerospike.client.task.IndexTask;
 
 /**
  * Helper class that simplifies Aerospike data access code.
@@ -129,6 +131,18 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         Assert.notNull(key, "key can't be null");
         final Key recordKey = new Key(namespace, setname, key);
         return getAerospikeClient().get(readPolicy, recordKey);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void createIndex(final String binName, final String indexName, final IndexType indexType) {        
+        Policy policy = new Policy();
+        policy.timeout = 0; // Do not timeout on index create.
+        
+        IndexTask task = getAerospikeClient().createIndex(policy, namespace, setname, indexName, binName, indexType);
+        task.waitTillComplete();        
     }
 
     public void setNamespace(String namespace) {

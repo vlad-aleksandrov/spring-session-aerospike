@@ -23,7 +23,7 @@ import javax.inject.Inject;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import v.a.org.springframework.session.messages.SessionControlMessage;
+import v.a.org.springframework.session.messages.ClearExpiredSessions;
 import v.a.org.springframework.session.support.SpringExtension;
 import akka.actor.ActorRef;
 import akka.actor.Terminated;
@@ -57,22 +57,22 @@ public class Supervisor extends UntypedActor {
 
         log.info("Starting up");
 
-        List<Routee> routees = new ArrayList<Routee>();
-        
+        List<Routee> routees = new ArrayList<>();
+
         // initialize actors
-        // single fetcher        
+        // single fetcher
         ActorRef fetcher = getContext().actorOf(springExtension.props("expiredSessionsFetcher"));
         getContext().watch(fetcher);
         routees.add(new ActorRefRoutee(fetcher));
-        
+
         // multiple removers
         /*
-        for (int i = 0; i < 100; i++) {
-            ActorRef actor = getContext().actorOf(springExtension.props("sessionRemover"));
-            getContext().watch(actor);
-            routees.add(new ActorRefRoutee(actor));
-        }
-        */
+         * for (int i = 0; i < 100; i++) {
+         * ActorRef actor = getContext().actorOf(springExtension.props("sessionRemover"));
+         * getContext().watch(actor);
+         * routees.add(new ActorRefRoutee(actor));
+         * }
+         */
         router = new Router(new SmallestMailboxRoutingLogic(), routees);
         super.preStart();
     }
@@ -80,7 +80,7 @@ public class Supervisor extends UntypedActor {
     @Override
     public void onReceive(Object message) throws Exception {
 
-        if (message instanceof SessionControlMessage) {
+        if (message instanceof ClearExpiredSessions) {
             router.route(message, getSender());
         } else if (message instanceof Terminated) {
             // Readd task actors if one failed

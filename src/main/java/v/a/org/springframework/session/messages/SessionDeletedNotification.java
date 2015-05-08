@@ -16,9 +16,11 @@
 package v.a.org.springframework.session.messages;
 
 /**
- * Marker interface for session control akka messages.
- *
+ * Deleted session notification event.
  */
-public interface SessionControlMessage {
+public class SessionDeletedNotification extends BaseSessionIdentity {
 
+    public SessionDeletedNotification(String id) {
+        super(id);
+    }
 }

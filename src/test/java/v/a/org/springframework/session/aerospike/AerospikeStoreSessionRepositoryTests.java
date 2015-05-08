@@ -38,6 +38,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
 import v.a.org.springframework.store.aerospike.AerospikeOperations;
+import akka.actor.ActorRef;
 
 import com.aerospike.client.Bin;
 
@@ -47,6 +48,9 @@ public class AerospikeStoreSessionRepositoryTests {
 
     @Mock
     AerospikeOperations aerospikeOperations;
+    
+    @Mock
+    ActorRef supervisorRef;
 
     @Captor
     ArgumentCaptor<String> capturedSessionId;
@@ -58,17 +62,17 @@ public class AerospikeStoreSessionRepositoryTests {
 
     @Before
     public void setup() {
-        this.aerospikeRepository = new AerospikeStoreSessionRepository(aerospikeOperations);
+        this.aerospikeRepository = new AerospikeStoreSessionRepository(aerospikeOperations, supervisorRef);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void constructorNullConnectionFactory() {
-        new AerospikeStoreSessionRepository((AerospikeOperations) null);
+        new AerospikeStoreSessionRepository((AerospikeOperations) null, supervisorRef);
     }
 
     @Test
     public void constructorConnectionFactory() {
-        aerospikeRepository = new AerospikeStoreSessionRepository(aerospikeOperations);
+        aerospikeRepository = new AerospikeStoreSessionRepository(aerospikeOperations, supervisorRef);
         AerospikeSession session = aerospikeRepository.createSession();
         session.setAttribute("K", "V");
         aerospikeRepository.save(session);

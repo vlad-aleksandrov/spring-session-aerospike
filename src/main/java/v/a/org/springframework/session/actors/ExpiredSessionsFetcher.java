@@ -29,7 +29,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import v.a.org.springframework.session.messages.SessionControlMessage;
 import v.a.org.springframework.session.support.SpringExtension;
 
 import java.util.ArrayList;

@@ -17,10 +17,8 @@ package v.a.org.springframework.session.messages;
 
 /**
  * Clear expired sessions initial event.
- * @author root
  *
  */
-public class ClearExpiredSessions implements SessionControlMessage {
+public class ClearExpiredSessions {
     
-
 }
