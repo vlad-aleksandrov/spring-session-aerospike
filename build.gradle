@@ -1,8 +1,8 @@
 description = 'Spring Session Aerospike'
 
 apply from:   "${rootProject.projectDir}/gradle/java.gradle"
+apply from:   "${rootProject.projectDir}/gradle/scala.gradle"
 apply from:   "${rootProject.projectDir}/gradle/publish-maven.gradle"
-
 
 jar {
     manifest.attributes["Created-By"] = "${System.getProperty("java.version")} (${System.getProperty("java.specification.vendor")})"

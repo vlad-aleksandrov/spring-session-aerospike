@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ImportAware;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -37,6 +38,7 @@ import org.springframework.session.web.http.SessionRepositoryFilter;
 import org.springframework.util.ClassUtils;
 
 import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository;
+import v.a.org.springframework.session.configuration.ActorsConfiguration;
 import v.a.org.springframework.store.aerospike.AerospikeTemplate;
 
 import com.aerospike.client.IAerospikeClient;
@@ -52,6 +54,7 @@ import com.aerospike.client.async.IAsyncClient;
  * @see EnableAerospikeHttpSession
  */
 @Configuration
+@Import(ActorsConfiguration.class)
 @EnableScheduling
 public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClassLoaderAware {
 
