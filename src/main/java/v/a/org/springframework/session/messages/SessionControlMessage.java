@@ -15,16 +15,10 @@
  */
 package v.a.org.springframework.session.messages;
 
-public class SessionIdentity {
-    
-    private final String id;
-    
-    public SessionIdentity(String id) {
-        this.id = id;
-    }
-
-    public String getId() {
-        return id;
-    }
+/**
+ * Marker interface for session control akka messages.
+ *
+ */
+public interface SessionControlMessage {
 
 }

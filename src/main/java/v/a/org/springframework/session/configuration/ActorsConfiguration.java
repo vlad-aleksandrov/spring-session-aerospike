@@ -15,12 +15,15 @@
  */
 package v.a.org.springframework.session.configuration;
 
+import javax.inject.Inject;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 
 import v.a.org.springframework.session.support.SpringExtension;
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 import com.typesafe.config.Config;
@@ -39,9 +42,17 @@ public class ActorsConfiguration {
     @Bean(destroyMethod = "shutdown")
     @DependsOn("springExtension")
     public ActorSystem actorSystem() {
-        ActorSystem system = ActorSystem.create("AkkaSessionsProcessing", akkaConfiguration());
+        ActorSystem system = ActorSystem.create("AkkaControlSessionsProcessing", akkaConfiguration());
         return system;
     }
+    
+    @Bean
+    @Inject
+    public ActorRef supervisorRef(ActorSystem actorSystem, SpringExtension ext) {
+        return actorSystem.actorOf(ext.props("supervisor"));
+    }
+    
+    
     
     /**
      * Reads configuration from {@code classpath:/application.conf} file

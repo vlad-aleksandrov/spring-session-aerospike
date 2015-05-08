@@ -38,6 +38,7 @@ import v.a.org.springframework.store.StoreCompression;
 import v.a.org.springframework.store.StoreSerializer;
 import v.a.org.springframework.store.aerospike.AerospikeOperations;
 import v.a.org.springframework.store.kryo.KryoStoreSerializer;
+import akka.actor.ActorRef;
 
 import com.aerospike.client.Bin;
 import com.aerospike.client.Record;
@@ -180,6 +181,8 @@ public class AerospikeStoreSessionRepository implements
     static final String SESSION_ATTRIBUTES_BIN = "sessionAttr";
 
     private final AerospikeOperations<String> sessionAerospikeOperations;
+    
+    private final ActorRef supervisorRef;
 
     private final AerospikeSessionExpirationPolicy expirationPolicy;
 
@@ -199,10 +202,11 @@ public class AerospikeStoreSessionRepository implements
      *            The {@link AerospikeOperations} to use for managing the sessions. Cannot be null.
      */
     @SuppressWarnings("rawtypes")
-    public AerospikeStoreSessionRepository(AerospikeOperations<String> sessionAerospikeOperations) {
+    public AerospikeStoreSessionRepository(AerospikeOperations<String> sessionAerospikeOperations, ActorRef supervisorRef) {
         Assert.notNull(sessionAerospikeOperations, "sessionAerospikeOperations cannot be null");
+        this.supervisorRef = supervisorRef;
         this.sessionAerospikeOperations = sessionAerospikeOperations;
-        this.expirationPolicy = new AerospikeSessionExpirationPolicy(sessionAerospikeOperations);
+        this.expirationPolicy = new AerospikeSessionExpirationPolicy(supervisorRef);
         this.sessionAttriburesSerializer = new KryoStoreSerializer<HashMap>(StoreCompression.SNAPPY);
     }
 

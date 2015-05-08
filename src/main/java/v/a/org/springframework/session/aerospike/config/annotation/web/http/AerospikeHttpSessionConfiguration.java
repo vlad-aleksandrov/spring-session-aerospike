@@ -40,6 +40,7 @@ import org.springframework.util.ClassUtils;
 import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository;
 import v.a.org.springframework.session.configuration.ActorsConfiguration;
 import v.a.org.springframework.store.aerospike.AerospikeTemplate;
+import akka.actor.ActorRef;
 
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.async.IAsyncClient;
@@ -74,6 +75,9 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
 
     @Inject
     private ApplicationEventPublisher eventPublisher;
+    
+    @Inject
+    private ActorRef supervisorRef;
 
     @Bean(initMethod = "init")
     @Inject
@@ -89,7 +93,7 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     @Bean
     @Inject
     public AerospikeStoreSessionRepository sessionRepository(final AerospikeTemplate aerospikeTemplate) {
-        final AerospikeStoreSessionRepository sessionRepository = new AerospikeStoreSessionRepository(aerospikeTemplate);
+        final AerospikeStoreSessionRepository sessionRepository = new AerospikeStoreSessionRepository(aerospikeTemplate, supervisorRef);
         sessionRepository.setDefaultMaxInactiveInterval(maxInactiveIntervalInSeconds);
         return sessionRepository;
     }

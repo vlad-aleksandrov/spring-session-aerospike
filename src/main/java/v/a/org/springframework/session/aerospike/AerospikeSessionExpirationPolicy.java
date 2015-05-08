@@ -19,7 +19,9 @@ package v.a.org.springframework.session.aerospike;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import akka.actor.ActorRef;
 import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
+import v.a.org.springframework.session.messages.ClearExpiredSessions;
 import v.a.org.springframework.store.aerospike.AerospikeOperations;
 
 /**
@@ -30,12 +32,12 @@ import v.a.org.springframework.store.aerospike.AerospikeOperations;
 final class AerospikeSessionExpirationPolicy {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
+    
+    private final ActorRef supervisorRef;
 
-    private final AerospikeOperations<String> sessionAerospikeOperations;
-
-    public AerospikeSessionExpirationPolicy(AerospikeOperations<String> sessionAerospikeOperations) {
+    public AerospikeSessionExpirationPolicy(ActorRef supervisorRef) {
         super();
-        this.sessionAerospikeOperations = sessionAerospikeOperations;
+        this.supervisorRef = supervisorRef;
     }
 
     public void onDelete(final String sessionId) {
@@ -45,7 +47,7 @@ final class AerospikeSessionExpirationPolicy {
 
     public void cleanExpiredSessions() {
         log.debug("Expired sessions cleanup");
-        // TODO
+        supervisorRef.tell(new ClearExpiredSessions(), null);
     }
 
 }
