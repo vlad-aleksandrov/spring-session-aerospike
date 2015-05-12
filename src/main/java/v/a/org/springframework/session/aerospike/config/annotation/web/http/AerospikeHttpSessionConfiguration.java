@@ -22,7 +22,6 @@ import javax.servlet.ServletContext;
 
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -72,9 +71,6 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     private String setname = "httpsession";
 
     private HttpSessionStrategy httpSessionStrategy;
-
-    @Inject
-    private ApplicationEventPublisher eventPublisher;
     
     @Inject
     private ActorRef supervisorRef;

@@ -42,6 +42,7 @@ import akka.actor.ActorRef;
 
 import com.aerospike.client.Bin;
 import com.aerospike.client.Record;
+import com.aerospike.client.query.IndexType;
 
 /**
  * <p>
@@ -153,7 +154,7 @@ public class AerospikeStoreSessionRepository implements
     /**
      * The bin name representing {@link org.springframework.session.ExpiringSession#getId()}
      */
-    static final String SESSION_ID_BIN = "sessionId";
+    public static final String SESSION_ID_BIN = "sessionId";
 
     /**
      * The bin name representing {@link org.springframework.session.ExpiringSession#getCreationTime()}
@@ -173,7 +174,9 @@ public class AerospikeStoreSessionRepository implements
     /**
      * The Aerospike bin name for session expiration timestamp. Indexed?
      */
-    static final String EXPIRED_BIN = "expired";
+    public static final String EXPIRED_BIN = "expired";
+    
+    static final String EXPIRED_INDEX = "expiredIndx";
 
     /**
      * The Aerospike bin name for session attributes map.
@@ -208,6 +211,9 @@ public class AerospikeStoreSessionRepository implements
         this.sessionAerospikeOperations = sessionAerospikeOperations;
         this.expirationPolicy = new AerospikeSessionExpirationPolicy(supervisorRef);
         this.sessionAttriburesSerializer = new KryoStoreSerializer<HashMap>(StoreCompression.SNAPPY);
+        
+        // create secondary index on "expired" bin
+        sessionAerospikeOperations.createIndex(EXPIRED_BIN, EXPIRED_INDEX, IndexType.NUMERIC);
     }
 
     /**

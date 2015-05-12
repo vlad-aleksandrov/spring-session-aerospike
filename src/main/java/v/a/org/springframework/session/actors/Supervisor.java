@@ -64,15 +64,12 @@ public class Supervisor extends UntypedActor {
         ActorRef fetcher = getContext().actorOf(springExtension.props("expiredSessionsFetcher"));
         getContext().watch(fetcher);
         routees.add(new ActorRefRoutee(fetcher));
+        
+        // single notifier
+        ActorRef notifier = getContext().actorOf(springExtension.props("sessionDeletedNotifier"));
+        getContext().watch(notifier);
 
-        // multiple removers
-        /*
-         * for (int i = 0; i < 100; i++) {
-         * ActorRef actor = getContext().actorOf(springExtension.props("sessionRemover"));
-         * getContext().watch(actor);
-         * routees.add(new ActorRefRoutee(actor));
-         * }
-         */
+
         router = new Router(new SmallestMailboxRoutingLogic(), routees);
         super.preStart();
     }
@@ -86,7 +83,7 @@ public class Supervisor extends UntypedActor {
             // Readd task actors if one failed
             router = router.removeRoutee(((Terminated) message).actor());
             ActorRef actor = getContext().actorOf(springExtension.props
-                    ("taskActor"));
+                    ("expiredSessionsFetcher"));
             getContext().watch(actor);
             router = router.addRoutee(new ActorRefRoutee(actor));
         } else {

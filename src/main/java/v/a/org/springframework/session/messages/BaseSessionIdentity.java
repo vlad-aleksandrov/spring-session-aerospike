@@ -27,4 +27,9 @@ public abstract class BaseSessionIdentity {
         return id;
     }
 
+    @Override
+    public String toString() {
+        return new StringBuilder().append(this.getClass()).append("[").append(this.getId()).append("]").toString();
+    }
+
 }

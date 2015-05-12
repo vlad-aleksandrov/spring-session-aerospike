@@ -15,20 +15,27 @@
  */
 package v.a.org.springframework.store.aerospike;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
+import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Bin;
 import com.aerospike.client.Key;
 import com.aerospike.client.Record;
+import com.aerospike.client.ScanCallback;
 import com.aerospike.client.policy.CommitLevel;
 import com.aerospike.client.policy.Policy;
 import com.aerospike.client.policy.RecordExistsAction;
+import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
+import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.IndexType;
+import com.aerospike.client.query.RecordSet;
+import com.aerospike.client.query.Statement;
 import com.aerospike.client.task.IndexTask;
 
 /**
@@ -55,7 +62,7 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
      * Namespace name.
      */
     private String namespace;
-    
+
     /**
      * Aerospike name for session data.
      */
@@ -132,17 +139,44 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         final Key recordKey = new Key(namespace, setname, key);
         return getAerospikeClient().get(readPolicy, recordKey);
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
-    public void createIndex(final String binName, final String indexName, final IndexType indexType) {        
+    public void createIndex(final String binName, final String indexName, final IndexType indexType) {
         Policy policy = new Policy();
         policy.timeout = 0; // Do not timeout on index create.
-        
+
         IndexTask task = getAerospikeClient().createIndex(policy, namespace, setname, indexName, binName, indexType);
-        task.waitTillComplete();        
+        task.waitTillComplete();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Set<String> fetchRange(String idBinName, String indexedBinName, long begin, long end) {
+
+        final Statement stmt = new Statement();
+        stmt.setNamespace(namespace);
+        stmt.setSetName(setname);
+        stmt.setBinNames(indexedBinName);
+        stmt.setFilters(Filter.range(indexedBinName, begin, end));
+
+        final RecordSet rs = getAerospikeClient().query(null, stmt);
+        final Set<String> result = new HashSet<>();
+        try {
+            while (rs.next()) {
+                Key key = rs.getKey();
+                log.trace("Found key: {}", key);
+                Record record = getAerospikeClient().get(readPolicy, key, idBinName);
+                result.add(record.getString(idBinName));
+            }
+        } finally {
+            rs.close();
+        }
+        return result;
     }
 
     public void setNamespace(String namespace) {
@@ -151,6 +185,15 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
 
     public void setSetname(String setname) {
         this.setname = setname;
+    }
+
+    @Override
+    public void deleteAll() {
+        getAerospikeClient().scanAll(new ScanPolicy(), namespace, setname, new ScanCallback() {
+            public void scanCallback(Key key, Record record) throws AerospikeException {
+                getAsyncAerospikeClient().delete(writePolicy, key);
+            }
+        }, new String[] {});
     }
 
 }
