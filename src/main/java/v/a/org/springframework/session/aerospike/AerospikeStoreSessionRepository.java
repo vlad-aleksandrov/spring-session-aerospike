@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.session.ExpiringSession;
 import org.springframework.session.MapSession;
@@ -228,6 +229,7 @@ public class AerospikeStoreSessionRepository implements
         this.defaultMaxInactiveInterval = defaultMaxInactiveInterval;
     }
 
+    @Async
     public void save(final AerospikeSession session) {
         final String sessionId = session.getId();
         final Set<Bin> binsToSave = new HashSet<>();
@@ -310,13 +312,8 @@ public class AerospikeStoreSessionRepository implements
     }
 
     public void delete(final String sessionId) {
-        if (this.sessionAerospikeOperations.hasKey(sessionId)) {
-            log.debug("Removing session '{}'", sessionId);
-            this.sessionAerospikeOperations.delete(sessionId);
-            this.expirationPolicy.onDelete(sessionId);
-        } else {
-            log.warn("Session '{}' does not exist in storage", sessionId);
-        }
+        log.debug("Removing session '{}'", sessionId);
+        this.expirationPolicy.onDelete(sessionId);
     }
 
     public AerospikeSession createSession() {

@@ -13,8 +13,8 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package v.a.org.springframework.session.actors;
-
+package v.a.org.springframework.session.aerospike.actors;
+import static v.a.org.springframework.session.aerospike.actors.Actors.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +23,7 @@ import javax.inject.Inject;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import v.a.org.springframework.session.messages.ClearExpiredSessions;
+import v.a.org.springframework.session.messages.DeleteSession;
 import v.a.org.springframework.session.support.SpringExtension;
 import akka.actor.ActorRef;
 import akka.actor.Terminated;
@@ -36,54 +36,44 @@ import akka.routing.Router;
 import akka.routing.SmallestMailboxRoutingLogic;
 
 /**
- * A sample supervisor which should handle exceptions and general feedback
- * for the actual actors.
- * <p/>
- * A router is configured at startup time, managing a pool of task actors.
+ * Actor handles sessions removal. The removal request is just delegated to the pool of workers who does actual removal.
  */
-@Component
+@Component(SEESION_REMOVER)
 @Scope("prototype")
-public class Supervisor extends UntypedActor {
+public class SessionRemover extends UntypedActor {
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), "Supervisor");
-
+    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
+        
     @Inject
     private SpringExtension springExtension;
 
     private Router router;
-
+        
     @Override
     public void preStart() throws Exception {
-
-        log.info("Starting up");
-
+        log.debug("Starting up");
         List<Routee> routees = new ArrayList<>();
-
-        // initialize actors
-        // single fetcher
-        ActorRef fetcher = getContext().actorOf(springExtension.props("expiredSessionsFetcher"));
-        getContext().watch(fetcher);
-        routees.add(new ActorRefRoutee(fetcher));
-        
-        // single notifier
-        ActorRef notifier = getContext().actorOf(springExtension.props("sessionDeletedNotifier"));
-        getContext().watch(notifier);
-
+        // initialize multiple janitor workers
+        for (int i = 0; i < 5; i++) {
+            ActorRef actor = getContext().actorOf(springExtension.props(DELETE_SESSION_WORKER), DELETE_SESSION_WORKER);
+            getContext().watch(actor);
+            routees.add(new ActorRefRoutee(actor));
+        }
 
         router = new Router(new SmallestMailboxRoutingLogic(), routees);
         super.preStart();
     }
-
+    
+    
     @Override
     public void onReceive(Object message) throws Exception {
-
-        if (message instanceof ClearExpiredSessions) {
-            router.route(message, getSender());
+        log.info("handle message {}", message);
+        if (message instanceof DeleteSession) {
+            router.route(message, getSender());            
         } else if (message instanceof Terminated) {
-            // Readd task actors if one failed
+            // Readd workers if one failed
             router = router.removeRoutee(((Terminated) message).actor());
-            ActorRef actor = getContext().actorOf(springExtension.props
-                    ("expiredSessionsFetcher"));
+            ActorRef actor = getContext().actorOf(springExtension.props(DELETE_SESSION_WORKER), DELETE_SESSION_WORKER);
             getContext().watch(actor);
             router = router.addRoutee(new ActorRefRoutee(actor));
         } else {
@@ -91,9 +81,6 @@ public class Supervisor extends UntypedActor {
         }
     }
 
-    @Override
-    public void postStop() throws Exception {
-        log.info("Shutting down");
-        super.postStop();
-    }
+
+
 }

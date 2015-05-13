@@ -19,10 +19,10 @@ package v.a.org.springframework.session.aerospike;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.actor.ActorRef;
 import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
 import v.a.org.springframework.session.messages.ClearExpiredSessions;
-import v.a.org.springframework.store.aerospike.AerospikeOperations;
+import v.a.org.springframework.session.messages.DeleteSession;
+import akka.actor.ActorRef;
 
 /**
  * A strategy for expiring {@link AerospikeSession} instances.
@@ -32,7 +32,7 @@ import v.a.org.springframework.store.aerospike.AerospikeOperations;
 final class AerospikeSessionExpirationPolicy {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
-    
+
     private final ActorRef supervisorRef;
 
     public AerospikeSessionExpirationPolicy(ActorRef supervisorRef) {
@@ -41,8 +41,8 @@ final class AerospikeSessionExpirationPolicy {
     }
 
     public void onDelete(final String sessionId) {
-        log.debug("Session '{}' deleted.");
-        // TODO
+        log.debug("Session '{}' deleted.", sessionId);
+        supervisorRef.tell(new DeleteSession(sessionId), null);
     }
 
     public void cleanExpiredSessions() {

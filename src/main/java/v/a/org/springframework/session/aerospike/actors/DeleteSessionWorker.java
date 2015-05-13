@@ -13,8 +13,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package v.a.org.springframework.session.actors;
+package v.a.org.springframework.session.aerospike.actors;
 
+import static v.a.org.springframework.session.aerospike.actors.Actors.*;
 import javax.inject.Inject;
 
 import org.springframework.context.annotation.Scope;
@@ -22,7 +23,6 @@ import org.springframework.stereotype.Component;
 
 import v.a.org.springframework.session.messages.DeleteSession;
 import v.a.org.springframework.session.messages.SessionDeletedNotification;
-import v.a.org.springframework.session.support.SpringExtension;
 import v.a.org.springframework.store.aerospike.AerospikeOperations;
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
@@ -32,23 +32,22 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 /**
- * Actor handles fetching of expired sessions.
+ * Actor handles an actual single session removal and broadcasting "session deleted" notification.
  */
-@Component("sessionRemover")
+@Component(DELETE_SESSION_WORKER)
 @Scope("prototype")
-public class SessionRemover extends UntypedActor {
+public class DeleteSessionWorker extends UntypedActor {
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), "ExpiredSessionsFetcher");
+    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
     
-    private ActorRef mediator = DistributedPubSubExtension.get(getContext().system()).mediator();
+    private final ActorRef mediator = DistributedPubSubExtension.get(getContext().system()).mediator();
     
     @Inject
     private AerospikeOperations<String> aerospikeOperations;
-
     
     @Override
     public void onReceive(Object message) throws Exception {
-        log.info("handle message {}", message);
+        log.debug("handle message {}", message);
         if (message instanceof DeleteSession) {
             DeleteSession deleteSessionMsg = (DeleteSession) message;
             String sessionId = deleteSessionMsg.getId();
@@ -60,6 +59,5 @@ public class SessionRemover extends UntypedActor {
         }
 
     }
-
 
 }

@@ -15,6 +15,8 @@
  */
 package v.a.org.springframework.session.configuration;
 
+import static v.a.org.springframework.session.aerospike.actors.Actors.SUPERVISOR;
+
 import javax.inject.Inject;
 
 import org.springframework.context.annotation.Bean;
@@ -32,7 +34,7 @@ import com.typesafe.config.ConfigFactory;
 @Configuration
 @ComponentScan(basePackages = {
         "v.a.org.springframework.session.support",
-        "v.a.org.springframework.session.actors"
+        "v.a.org.springframework.session.aerospike.actors"
 })
 public class ActorsConfiguration {
 
@@ -45,15 +47,13 @@ public class ActorsConfiguration {
         ActorSystem system = ActorSystem.create("AkkaControlSessionsProcessing", akkaConfiguration());
         return system;
     }
-    
+
     @Bean
     @Inject
     public ActorRef supervisorRef(ActorSystem actorSystem, SpringExtension ext) {
-        return actorSystem.actorOf(ext.props("supervisor"));
+        return actorSystem.actorOf(ext.props(SUPERVISOR), SUPERVISOR);
     }
-    
-    
-    
+
     /**
      * Reads configuration from {@code classpath:/application.conf} file
      */

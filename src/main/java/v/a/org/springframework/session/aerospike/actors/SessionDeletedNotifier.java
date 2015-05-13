@@ -13,8 +13,8 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package v.a.org.springframework.session.actors;
-
+package v.a.org.springframework.session.aerospike.actors;
+import static v.a.org.springframework.session.aerospike.actors.Actors.*;
 import javax.inject.Inject;
 
 import org.springframework.context.ApplicationEvent;
@@ -34,11 +34,11 @@ import akka.event.LoggingAdapter;
 /**
  * Actor handles deleted sessions notification.
  */
-@Component("sessionDeletedNotifier")
+@Component(SESSION_DELETED_NOTIFIER)
 @Scope("prototype")
 public class SessionDeletedNotifier extends UntypedActor {
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), "SessionDeletedNotifier");
+    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
 
     @Inject
     private ApplicationEventPublisher eventPublisher;
@@ -57,7 +57,7 @@ public class SessionDeletedNotifier extends UntypedActor {
             publishEvent(new SessionDestroyedEvent(this, notification.getId()));
         }
         else if (msg instanceof DistributedPubSubMediator.SubscribeAck)
-            log.info("subscribing");
+            log.debug("subscribing");
         else
             unhandled(msg);
     }

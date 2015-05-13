@@ -13,14 +13,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package v.a.org.springframework.session.actors;
-
-
+package v.a.org.springframework.session.aerospike.actors;
 import static v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.EXPIRED_BIN;
 import static v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.SESSION_ID_BIN;
+import static v.a.org.springframework.session.aerospike.actors.Actors.EXPIRED_SESSIONS_CARETAKER;
+import static v.a.org.springframework.session.aerospike.actors.Actors.SEESION_REMOVER;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -30,75 +28,36 @@ import org.springframework.stereotype.Component;
 
 import v.a.org.springframework.session.messages.ClearExpiredSessions;
 import v.a.org.springframework.session.messages.DeleteSession;
-import v.a.org.springframework.session.support.SpringExtension;
 import v.a.org.springframework.store.aerospike.AerospikeOperations;
-import akka.actor.ActorRef;
-import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.routing.ActorRefRoutee;
-import akka.routing.Routee;
-import akka.routing.Router;
-import akka.routing.SmallestMailboxRoutingLogic;
 
 /**
- * Actor handles fetching of expired sessions.
+ * Actor handles expired sessions .
  */
-@Component("expiredSessionsFetcher")
+@Component(EXPIRED_SESSIONS_CARETAKER)
 @Scope("prototype")
-public class ExpiredSessionsFetcher extends UntypedActor {
+public class ExpiredSessionsCaretaker extends UntypedActor {
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), "ExpiredSessionsFetcher");
-
-    @Inject
-    private SpringExtension springExtension;
+    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
     
     @Inject
     private AerospikeOperations<String> aerospikeOperations;
 
-    private Router router;
-
-    @Override
-    public void preStart() throws Exception {
-
-        log.info("Starting up");
-
-        List<Routee> routees = new ArrayList<>();
-
-        // initialize actors
-        // multiple removers
-        for (int i = 0; i < 20; i++) {
-            ActorRef actor = getContext().actorOf(springExtension.props("sessionRemover"));
-            getContext().watch(actor);
-            routees.add(new ActorRefRoutee(actor));
-        }
-
-        router = new Router(new SmallestMailboxRoutingLogic(), routees);
-        super.preStart();
-    }
-
-
-    
     @Override
     public void onReceive(Object message) throws Exception {
-        log.info("handle message {}", message);
+        log.debug("handle message {}", message);
         if (message instanceof ClearExpiredSessions) {
             Set<String> expiredSession = aerospikeOperations.fetchRange(SESSION_ID_BIN, EXPIRED_BIN, 0L, System.currentTimeMillis());
             for (String sessionId : expiredSession) {
-                router.route(new DeleteSession(sessionId), getSender());
+                getContext().actorSelection("../" + SEESION_REMOVER).tell(new DeleteSession(sessionId), self());
             }
             
-            
-        } else if (message instanceof Terminated) {
-            // Readd task actors if one failed
-            router = router.removeRoutee(((Terminated) message).actor());
-            ActorRef actor = getContext().actorOf(springExtension.props
-                    ("sessionRemover"));
-            getContext().watch(actor);
-            router = router.addRoutee(new ActorRefRoutee(actor));
+
         } else {
             log.error("Unable to handle message {}", message);
+            unhandled(message);
         }
     }
 
