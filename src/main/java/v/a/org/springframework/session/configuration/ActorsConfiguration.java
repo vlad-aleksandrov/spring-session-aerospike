@@ -15,7 +15,7 @@
  */
 package v.a.org.springframework.session.configuration;
 
-import static v.a.org.springframework.session.aerospike.actors.Actors.SUPERVISOR;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SUPERVISOR;
 
 import javax.inject.Inject;
 

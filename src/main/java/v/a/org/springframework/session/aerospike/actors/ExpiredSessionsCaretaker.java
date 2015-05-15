@@ -14,10 +14,11 @@
  * the License.
  */
 package v.a.org.springframework.session.aerospike.actors;
-import static v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.EXPIRED_BIN;
-import static v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.SESSION_ID_BIN;
-import static v.a.org.springframework.session.aerospike.actors.Actors.EXPIRED_SESSIONS_CARETAKER;
-import static v.a.org.springframework.session.aerospike.actors.Actors.SEESION_REMOVER;
+
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.EXPIRED_SESSIONS_CARETAKER;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SEESION_REMOVER;
+import static v.a.org.springframework.session.aerospike.actors.PersistentSessionAerospike.EXPIRED_BIN;
+import static v.a.org.springframework.session.aerospike.actors.PersistentSessionAerospike.SESSION_ID_BIN;
 
 import java.util.Set;
 
@@ -41,7 +42,7 @@ import akka.event.LoggingAdapter;
 public class ExpiredSessionsCaretaker extends UntypedActor {
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
-    
+
     @Inject
     private AerospikeOperations<String> aerospikeOperations;
 
@@ -49,17 +50,16 @@ public class ExpiredSessionsCaretaker extends UntypedActor {
     public void onReceive(Object message) throws Exception {
         log.debug("handle message {}", message);
         if (message instanceof ClearExpiredSessions) {
-            Set<String> expiredSession = aerospikeOperations.fetchRange(SESSION_ID_BIN, EXPIRED_BIN, 0L, System.currentTimeMillis());
+            Set<String> expiredSession = aerospikeOperations.fetchRange(SESSION_ID_BIN, EXPIRED_BIN, 0L,
+                    System.currentTimeMillis());
             for (String sessionId : expiredSession) {
                 getContext().actorSelection("../" + SEESION_REMOVER).tell(new DeleteSession(sessionId), self());
             }
-            
 
         } else {
             log.error("Unable to handle message {}", message);
             unhandled(message);
         }
     }
-
 
 }

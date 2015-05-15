@@ -14,7 +14,10 @@
  * the License.
  */
 package v.a.org.springframework.session.aerospike.actors;
-import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.*;
+
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SERIALIZE_SESSION_WORKER;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SESSION_SERIALIZER;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +26,7 @@ import javax.inject.Inject;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import v.a.org.springframework.session.messages.DeleteSession;
+import v.a.org.springframework.session.messages.SessionAttributes;
 import v.a.org.springframework.session.support.SpringExtension;
 import akka.actor.ActorRef;
 import akka.actor.Terminated;
@@ -36,26 +39,26 @@ import akka.routing.Router;
 import akka.routing.SmallestMailboxRoutingLogic;
 
 /**
- * Actor handles sessions removal. The removal request is just delegated to the pool of workers who does actual removal.
+ * Actor handles sessions attributes serialization. Ot maintains it's own pool of serialization workers
  */
-@Component(SEESION_REMOVER)
+@Component(SESSION_SERIALIZER)
 @Scope("prototype")
-public class SessionRemover extends UntypedActor {
+public class SessionSerializer extends UntypedActor {
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
-        
+
     @Inject
     private SpringExtension springExtension;
 
     private Router router;
-        
+
     @Override
     public void preStart() throws Exception {
         log.debug("Starting up");
         List<Routee> routees = new ArrayList<>();
-        // initialize multiple janitor workers
-        for (int i = 0; i < 5; i++) {
-            ActorRef actor = getContext().actorOf(springExtension.props(DELETE_SESSION_WORKER));
+        // initialize multiple serialization workers
+        for (int i = 0; i < 20; i++) {
+            ActorRef actor = getContext().actorOf(springExtension.props(SERIALIZE_SESSION_WORKER));
             getContext().watch(actor);
             routees.add(new ActorRefRoutee(actor));
         }
@@ -63,24 +66,22 @@ public class SessionRemover extends UntypedActor {
         router = new Router(new SmallestMailboxRoutingLogic(), routees);
         super.preStart();
     }
-    
-    
+
     @Override
     public void onReceive(Object message) throws Exception {
-        log.info("handle message {}", message);
-        if (message instanceof DeleteSession) {
-            router.route(message, getSender());            
+        log.debug("handle message {}", message);
+        if (message instanceof SessionAttributes) {
+            router.route(message, getSender());
         } else if (message instanceof Terminated) {
             // Readd workers if one failed
             router = router.removeRoutee(((Terminated) message).actor());
-            ActorRef actor = getContext().actorOf(springExtension.props(DELETE_SESSION_WORKER), DELETE_SESSION_WORKER);
+            ActorRef actor = getContext().actorOf(springExtension.props(SERIALIZE_SESSION_WORKER),
+                    SERIALIZE_SESSION_WORKER);
             getContext().watch(actor);
             router = router.addRoutee(new ActorRefRoutee(actor));
         } else {
             log.error("Unable to handle message {}", message);
         }
     }
-
-
 
 }

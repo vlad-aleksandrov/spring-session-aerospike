@@ -15,7 +15,7 @@
  */
 package v.a.org.springframework.session.aerospike.actors;
 
-import static v.a.org.springframework.session.aerospike.actors.Actors.*;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.*;
 import javax.inject.Inject;
 
 import org.springframework.context.annotation.Scope;

@@ -35,6 +35,7 @@ import org.springframework.session.events.SessionDestroyedEvent;
 import org.springframework.session.web.http.SessionRepositoryFilter;
 import org.springframework.util.Assert;
 
+import v.a.org.springframework.session.messages.SessionSnapshot;
 import v.a.org.springframework.store.StoreCompression;
 import v.a.org.springframework.store.StoreSerializer;
 import v.a.org.springframework.store.aerospike.AerospikeOperations;
@@ -152,40 +153,9 @@ public class AerospikeStoreSessionRepository implements
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    /**
-     * The bin name representing {@link org.springframework.session.ExpiringSession#getId()}
-     */
-    public static final String SESSION_ID_BIN = "sessionId";
-
-    /**
-     * The bin name representing {@link org.springframework.session.ExpiringSession#getCreationTime()}
-     */
-    static final String CREATION_TIME_BIN = "created";
-
-    /**
-     * The bin name representing {@link org.springframework.session.ExpiringSession#getMaxInactiveIntervalInSeconds()}
-     */
-    static final String MAX_INACTIVE_BIN = "maxInactive";
-
-    /**
-     * The bin name representing {@link org.springframework.session.ExpiringSession#getLastAccessedTime()}
-     */
-    static final String LAST_ACCESSED_BIN = "lastAccessed";
-
-    /**
-     * The Aerospike bin name for session expiration timestamp. Indexed?
-     */
-    public static final String EXPIRED_BIN = "expired";
-    
-    static final String EXPIRED_INDEX = "expiredIndx";
-
-    /**
-     * The Aerospike bin name for session attributes map.
-     */
-    static final String SESSION_ATTRIBUTES_BIN = "sessionAttr";
 
     private final AerospikeOperations<String> sessionAerospikeOperations;
-    
+
     private final ActorRef supervisorRef;
 
     private final AerospikeSessionExpirationPolicy expirationPolicy;
@@ -206,15 +176,16 @@ public class AerospikeStoreSessionRepository implements
      *            The {@link AerospikeOperations} to use for managing the sessions. Cannot be null.
      */
     @SuppressWarnings("rawtypes")
-    public AerospikeStoreSessionRepository(AerospikeOperations<String> sessionAerospikeOperations, ActorRef supervisorRef) {
+    public AerospikeStoreSessionRepository(AerospikeOperations<String> sessionAerospikeOperations,
+            ActorRef supervisorRef) {
         Assert.notNull(sessionAerospikeOperations, "sessionAerospikeOperations cannot be null");
         this.supervisorRef = supervisorRef;
         this.sessionAerospikeOperations = sessionAerospikeOperations;
         this.expirationPolicy = new AerospikeSessionExpirationPolicy(supervisorRef);
         this.sessionAttriburesSerializer = new KryoStoreSerializer<HashMap>(StoreCompression.SNAPPY);
-        
+
         // create secondary index on "expired" bin
-        sessionAerospikeOperations.createIndex(EXPIRED_BIN, EXPIRED_INDEX, IndexType.NUMERIC);
+        //sessionAerospikeOperations.createIndex(EXPIRED_BIN, EXPIRED_INDEX, IndexType.NUMERIC);
     }
 
     /**
@@ -229,39 +200,11 @@ public class AerospikeStoreSessionRepository implements
         this.defaultMaxInactiveInterval = defaultMaxInactiveInterval;
     }
 
-    @Async
     public void save(final AerospikeSession session) {
-        final String sessionId = session.getId();
-        final Set<Bin> binsToSave = new HashSet<>();
-
-        if (!sessionAerospikeOperations.hasKey(sessionId)) {
-            log.trace("Save new session {}", sessionId);
-            // newly created session - save "created", "max inactive interval" and "id" itself
-            binsToSave.add(new Bin(CREATION_TIME_BIN, session.getCreationTime()));
-            binsToSave.add(new Bin(MAX_INACTIVE_BIN, session.getMaxInactiveIntervalInSeconds()));
-            binsToSave.add(new Bin(SESSION_ID_BIN, sessionId));
-        } else {
-            log.trace("Update existing session {}", sessionId);
-        }
-        // always updated last access timestamp
-        binsToSave.add(new Bin(LAST_ACCESSED_BIN, session.getLastAccessedTime()));
-        if (session.getMaxInactiveIntervalInSeconds() > 0) {
-            // update expired only for session with expiration
-            binsToSave.add(new Bin(EXPIRED_BIN, session.getExpirationTimestamp()));
-        }
-        if (session.isUpdated()) {
-            log.trace("Serialize and save updated attributes for session {}", sessionId);
-            final HashMap<String, Object> attributesToSave = new HashMap<>();
-            final Set<String> allNames = session.getAttributeNames();
-            for (String name : allNames) {
-                attributesToSave.put(name, session.getAttribute(name));
-            }
-            binsToSave.add(new Bin(SESSION_ATTRIBUTES_BIN, sessionAttriburesSerializer.serialize(attributesToSave)));
-        }
-        sessionAerospikeOperations.persist(sessionId, binsToSave);
+        supervisorRef.tell(createSessionSnapshot(session), null);
     }
 
-    @Scheduled(cron = "0 * * * * *")
+    //@Scheduled(cron = "0 * * * * *")
     public void cleanupExpiredSessions() {
         this.expirationPolicy.cleanExpiredSessions();
     }
@@ -281,6 +224,7 @@ public class AerospikeStoreSessionRepository implements
      * @return
      */
     private AerospikeSession getSession(String id, boolean allowExpired) {
+        /*
         final Record sessionRecord = sessionAerospikeOperations.fetch(id);
         if (sessionRecord == null) {
             log.debug("Session {} not found in store", id);
@@ -306,9 +250,31 @@ public class AerospikeStoreSessionRepository implements
             final Object value = entry.getValue();
             loaded.setAttribute(key, value);
         }
-        final AerospikeSession result = new AerospikeSession(loaded);
+        */
+        final AerospikeSession result = new AerospikeSession(new MapSession()); // loaded
         result.setLastAccessedTime(System.currentTimeMillis());
         return result;
+    }
+
+    /**
+     * Creates immutable snapshot of message metadata and attributes.
+     * 
+     * @param aerospikeSession
+     * @return immutable session snapshot
+     */
+    private SessionSnapshot createSessionSnapshot(final AerospikeSession aerospikeSession) {
+        final SessionSnapshot.Builder builder = new SessionSnapshot.Builder(aerospikeSession.getId())
+                .creationTime(aerospikeSession.getCreationTime())
+                .expirationTimestamp(aerospikeSession.getExpirationTimestamp())
+                .lastAccessedTime(aerospikeSession.getLastAccessedTime())
+                .maxInactiveIntervalInSec(aerospikeSession.getMaxInactiveIntervalInSeconds())
+                .updated(aerospikeSession.isUpdated());
+
+        Set<String> attributeNames = aerospikeSession.getAttributeNames();
+        for (String name : attributeNames) {
+            builder.addAattribute(name, aerospikeSession.getAttribute(name));
+        }
+        return builder.build();
     }
 
     public void delete(final String sessionId) {
@@ -329,7 +295,7 @@ public class AerospikeStoreSessionRepository implements
      *
      * @author Vlad Aleksandrov
      */
-    final class AerospikeSession implements ExpiringSession {
+    public final class AerospikeSession implements ExpiringSession {
         private final MapSession cached;
         private Long expirationTimestamp;
         /**
@@ -432,7 +398,6 @@ public class AerospikeStoreSessionRepository implements
         public boolean isUpdated() {
             return updated;
         }
-
 
     }
 

@@ -40,6 +40,11 @@ import com.esotericsoftware.kryo.serializers.DefaultSerializers.LocaleSerializer
 
 import de.javakaffee.kryoserializers.KryoReflectionFactorySupport;
 
+/**
+ * Kryo serializer.
+ *
+ * @param <T>
+ */
 public class KryoStoreSerializer<T> implements StoreSerializer<T> {
     
     private final Logger log = LoggerFactory.getLogger(this.getClass());    

@@ -13,22 +13,26 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package v.a.org.springframework.session.aerospike.actors;
+package v.a.org.springframework.session.messages;
+
+import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
- * Akka actors eco-system.
+ * Immutable session attributes for serialization.
  *
  */
-public abstract class Actors {
-    
-    public final static String SUPERVISOR = "supervisor";
-    
-    public final static String SEESION_REMOVER = "sessionRemover";
-    
-    public final static String EXPIRED_SESSIONS_CARETAKER = "expiredSessionsCaretaker";
-    
-    public final static String SESSION_DELETED_NOTIFIER = "sessionDeletedNotifier";
-    
-    public final static String DELETE_SESSION_WORKER = "deleteSessionWorker";
+public class SessionAttributes {
+
+    private final Map<String, Object> attributes;
+
+    public SessionAttributes(Map<String, Object> attributes) {
+        this.attributes = ImmutableMap.copyOf(attributes);
+    }
+
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
 
 }

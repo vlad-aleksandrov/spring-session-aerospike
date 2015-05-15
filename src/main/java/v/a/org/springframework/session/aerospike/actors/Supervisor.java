@@ -15,7 +15,7 @@
  */
 package v.a.org.springframework.session.aerospike.actors;
 
-import static v.a.org.springframework.session.aerospike.actors.Actors.*;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.*;
 
 import javax.inject.Inject;
 
@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 
 import v.a.org.springframework.session.messages.ClearExpiredSessions;
 import v.a.org.springframework.session.messages.DeleteSession;
+import v.a.org.springframework.session.messages.SessionSnapshot;
 import v.a.org.springframework.session.support.SpringExtension;
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
@@ -43,9 +44,11 @@ public class Supervisor extends UntypedActor {
     @Inject
     private SpringExtension springExtension;
     
-    private ActorRef fetcherRef;
+    private ActorRef expiredSessionsCaretakerRef;
     private ActorRef removerRef;
     private ActorRef notifierRef;
+    private ActorRef serializerRef;
+
 
 
     @Override
@@ -60,12 +63,16 @@ public class Supervisor extends UntypedActor {
         getContext().watch(removerRef);
         
         // expired sessions caretaker
-        fetcherRef = getContext().actorOf(springExtension.props(EXPIRED_SESSIONS_CARETAKER), EXPIRED_SESSIONS_CARETAKER);
-        getContext().watch(fetcherRef);        
+        expiredSessionsCaretakerRef = getContext().actorOf(springExtension.props(EXPIRED_SESSIONS_CARETAKER), EXPIRED_SESSIONS_CARETAKER);
+        getContext().watch(expiredSessionsCaretakerRef);        
         
         // single notifier actor
         notifierRef = getContext().actorOf(springExtension.props(SESSION_DELETED_NOTIFIER), SESSION_DELETED_NOTIFIER);
         getContext().watch(notifierRef);
+        
+        // single session serializer.
+        serializerRef = getContext().actorOf(springExtension.props(SESSION_SERIALIZER), SESSION_SERIALIZER);
+        getContext().watch(serializerRef);
 
         super.preStart();
     }
@@ -73,11 +80,15 @@ public class Supervisor extends UntypedActor {
     @Override
     public void onReceive(Object message) throws Exception {
         if (message instanceof ClearExpiredSessions) {
-            fetcherRef.tell(message, getSender());
+            expiredSessionsCaretakerRef.tell(message, getSender());
         } else if (message instanceof DeleteSession) {
             removerRef.tell(message, getSender());
+        } else if (message instanceof SessionSnapshot) {
+            // Create "per-request" persister actor and hand over a session snapshot to be saved
+            ActorRef persisterRef = getContext().actorOf(springExtension.props(SESSION_PERSISTER));
+            getContext().watch(persisterRef);
+            persisterRef.tell(message, getSelf());            
         } else {
-            log.error("Unable to handle message {}", message);
             unhandled(message);
         }
     }

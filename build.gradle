@@ -36,6 +36,7 @@ dependencies {
 	compile "com.esotericsoftware:kryo-shaded:$kryoVersion"
 	compile "de.javakaffee:kryo-serializers:$kryoSerializersVersion"
 	compile "org.iq80.snappy:snappy:$snappyVersion"
+	compile "com.google.guava:guava:$guavaVersion"
 
     // Aerospike Driver
     compile "com.aerospike:aerospike-client:$aerospikeVersion"
