@@ -21,22 +21,18 @@ package v.a.org.springframework.session.aerospike.actors;
  */
 public abstract class ActorsEcoSystem {
     
-    public final static String SUPERVISOR = "supervisor";
+    public final static String EXPIRED_SESSIONS_CARETAKER = "expiredSessionsCaretaker";
     
-    final static String SEESION_REMOVER = "sessionRemover";
-    
-    final static String EXPIRED_SESSIONS_CARETAKER = "expiredSessionsCaretaker";
-    
-    final static String SESSION_DELETED_NOTIFIER = "sessionDeletedNotifier";
-    
+    public final static String SEESION_REMOVER = "sessionRemover";
     final static String DELETE_SESSION_WORKER = "deleteSessionWorker";
     
-    final static String SESSION_SERIALIZER = "sessionSerializer";
-    
+    public final static String SESSION_DELETED_NOTIFIER = "sessionDeletedNotifier";    
+        
+    public final static String SESSION_SERIALIZER = "sessionSerializer";    
     final static String SERIALIZE_SESSION_WORKER = "serializeSessionWorker";
     
-    final static String SESSION_PERSISTER = "sessionPersister";
+    public final static String SESSION_PERSISTER = "sessionPersister";
     
-    final static String SESSION_LOADER = "sessionLoader";
+    public final static String SESSION_FETCHER = "sessionFetcher";
 
 }

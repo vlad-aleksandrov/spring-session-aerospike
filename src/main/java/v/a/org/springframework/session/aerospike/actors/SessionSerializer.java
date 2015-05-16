@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import v.a.org.springframework.session.messages.SessionAttributes;
+import v.a.org.springframework.session.messages.SessionAttributesBinary;
 import v.a.org.springframework.session.support.SpringExtension;
 import akka.actor.ActorRef;
 import akka.actor.Terminated;
@@ -70,7 +71,7 @@ public class SessionSerializer extends UntypedActor {
     @Override
     public void onReceive(Object message) throws Exception {
         log.debug("handle message {}", message);
-        if (message instanceof SessionAttributes) {
+        if (message instanceof SessionAttributes || message instanceof SessionAttributesBinary) {
             router.route(message, getSender());
         } else if (message instanceof Terminated) {
             // Readd workers if one failed

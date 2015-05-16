@@ -20,12 +20,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
-import v.a.org.springframework.session.messages.ClearExpiredSessions;
 import v.a.org.springframework.session.messages.DeleteSession;
-import akka.actor.ActorRef;
+import v.a.org.springframework.session.messages.SessionControlEvent;
+import akka.actor.ActorSelection;
 
 /**
- * A strategy for expiring {@link AerospikeSession} instances.
+ * A strategy for expiring and deleting {@link AerospikeSession} instances.
  * 
  * @author Vlad Aleksandrov
  */
@@ -33,21 +33,23 @@ final class AerospikeSessionExpirationPolicy {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private final ActorRef supervisorRef;
+    private final ActorSelection removerActor;
+    private final ActorSelection expiredSessionsCaretakerActor;
 
-    public AerospikeSessionExpirationPolicy(ActorRef supervisorRef) {
+    public AerospikeSessionExpirationPolicy(ActorSelection removerActor, ActorSelection expiredSessionsCaretakerActor) {
         super();
-        this.supervisorRef = supervisorRef;
+        this.removerActor = removerActor;
+        this.expiredSessionsCaretakerActor = expiredSessionsCaretakerActor;
     }
 
     public void onDelete(final String sessionId) {
         log.debug("Session '{}' deleted.", sessionId);
-        supervisorRef.tell(new DeleteSession(sessionId), null);
+        this.removerActor.tell(new DeleteSession(sessionId), null);
     }
 
     public void cleanExpiredSessions() {
         log.debug("Expired sessions cleanup");
-        supervisorRef.tell(new ClearExpiredSessions(), null);
+        this.expiredSessionsCaretakerActor.tell(SessionControlEvent.CLEAR_EXPIRED_SESSIONS, null);
     }
 
 }

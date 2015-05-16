@@ -69,7 +69,7 @@ public class SessionPersister extends UntypedActor {
     @Inject
     private AerospikeOperations<String> sessionAerospikeOperations;
 
-    // Stateful data
+    // State data
     private String sessionId;
     private final Set<Bin> binsToSave = new HashSet<>();
 
@@ -137,7 +137,7 @@ public class SessionPersister extends UntypedActor {
                     new SessionAttributes(sessionSnapshot.getSessionAttrs()), self());
         } else {
             // send "save session" message to self right away
-            getSelf().tell(InternalEvents.SAVE, getSelf());
+            getSelf().tell(InternalEvents.SAVE, getSender());
         }
     }
 

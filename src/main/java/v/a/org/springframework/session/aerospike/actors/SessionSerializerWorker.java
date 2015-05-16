@@ -18,9 +18,12 @@ package v.a.org.springframework.session.aerospike.actors;
 import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SERIALIZE_SESSION_WORKER;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+
+import com.google.common.collect.ImmutableMap;
 
 import v.a.org.springframework.session.messages.SessionAttributes;
 import v.a.org.springframework.session.messages.SessionAttributesBinary;
@@ -41,7 +44,8 @@ public class SessionSerializerWorker extends UntypedActor {
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
 
-    private StoreSerializer<HashMap<String, Object>> converter = new KryoStoreSerializer<>(StoreCompression.SNAPPY);
+    @SuppressWarnings("rawtypes")
+    private StoreSerializer<HashMap> converter = new KryoStoreSerializer<>(StoreCompression.SNAPPY);
 
     @Override
     public void onReceive(Object message) throws Exception {
@@ -51,7 +55,14 @@ public class SessionSerializerWorker extends UntypedActor {
             SessionAttributes attributes = (SessionAttributes) message;
             final byte[] result = converter.serialize(new HashMap<String, Object>(attributes.getAttributes()));
             getSender().tell(new SessionAttributesBinary(result), getSelf());
-        } else {
+        }
+        else if (message instanceof SessionAttributesBinary) {
+            SessionAttributesBinary binaryData = (SessionAttributesBinary) message;
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> attributes = converter.deserialize(binaryData.getAttributes(), HashMap.class);
+            getSender().tell(ImmutableMap.copyOf(attributes), getSelf());
+        }
+        else {
             unhandled(message);
         }
 

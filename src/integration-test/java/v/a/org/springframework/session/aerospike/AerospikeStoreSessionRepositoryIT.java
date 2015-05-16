@@ -15,7 +15,6 @@
  */
 package v.a.org.springframework.session.aerospike;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 
@@ -35,8 +34,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
-
 import v.a.org.springframework.session.aerospike.config.annotation.web.http.EnableAerospikeHttpSession;
+import v.a.org.springframework.store.aerospike.test.BaseIntegrationTest;
 
 import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.Host;
@@ -46,10 +45,7 @@ import com.aerospike.client.async.AsyncClientPolicy;
 import com.aerospike.client.async.IAsyncClient;
 import com.aerospike.client.policy.ClientPolicy;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration
-@WebAppConfiguration
-public class AerospikeStoreSessionRepositoryIT {
+public class AerospikeStoreSessionRepositoryIT extends BaseIntegrationTest {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());   
 
@@ -104,30 +100,5 @@ public class AerospikeStoreSessionRepositoryIT {
         assertThat(repository.getSession(sessionId), nullValue());
     }
 
-
-    @Configuration
-    @PropertySource(value = "classpath:/application.properties")
-    @EnableAerospikeHttpSession(namespace = "cache", setname = "httpsessionIT")
-    static class Config {
-        
-        @Inject
-        private Environment env;
-
-        @Bean(destroyMethod = "close")
-        public IAerospikeClient aerospikeClient() throws Exception {
-            final ClientPolicy defaultClientPolicy = new ClientPolicy();
-            final IAerospikeClient client = new AerospikeClient(defaultClientPolicy, new Host(env.getProperty("aerospike.host"),
-                    Integer.valueOf(env.getProperty("aerospike.port"))));
-            return client;
-        }
-
-        @Bean(destroyMethod = "close")
-        public IAsyncClient aerospikeAsyncClient() throws Exception {
-            final AsyncClientPolicy defaultAsyncClientPolicy = new AsyncClientPolicy();
-            final IAsyncClient client = new AsyncClient(defaultAsyncClientPolicy, new Host(env.getProperty("aerospike.host"),
-                    Integer.valueOf(env.getProperty("aerospike.port"))));
-            return client;
-        }
-    }
 
 }

@@ -38,8 +38,9 @@ import org.springframework.util.ClassUtils;
 
 import v.a.org.springframework.session.aerospike.AerospikeStoreSessionRepository;
 import v.a.org.springframework.session.configuration.ActorsConfiguration;
+import v.a.org.springframework.session.support.SpringExtension;
 import v.a.org.springframework.store.aerospike.AerospikeTemplate;
-import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.async.IAsyncClient;
@@ -71,13 +72,17 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     private String setname = "httpsession";
 
     private HttpSessionStrategy httpSessionStrategy;
-    
+
     @Inject
-    private ActorRef supervisorRef;
+    private ActorSystem actorSystem;
+
+    @Inject
+    private SpringExtension springExtension;
 
     @Bean(initMethod = "init")
     @Inject
-    public AerospikeTemplate sessionAerospikeTemplate(final IAerospikeClient aerospikeClient, final IAsyncClient asyncAerospikeClient) {    
+    public AerospikeTemplate sessionAerospikeTemplate(final IAerospikeClient aerospikeClient,
+            final IAsyncClient asyncAerospikeClient) {
         final AerospikeTemplate template = new AerospikeTemplate();
         template.setAerospikeClient(aerospikeClient);
         template.setAerospikeAsyncClient(asyncAerospikeClient);
@@ -87,9 +92,9 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     }
 
     @Bean
-    @Inject
-    public AerospikeStoreSessionRepository sessionRepository(final AerospikeTemplate aerospikeTemplate) {
-        final AerospikeStoreSessionRepository sessionRepository = new AerospikeStoreSessionRepository(aerospikeTemplate, supervisorRef);
+    public AerospikeStoreSessionRepository sessionRepository() {
+        final AerospikeStoreSessionRepository sessionRepository = new AerospikeStoreSessionRepository(actorSystem,
+                springExtension);
         sessionRepository.setDefaultMaxInactiveInterval(maxInactiveIntervalInSeconds);
         return sessionRepository;
     }
@@ -110,7 +115,6 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     }
 
     public void setImportMetadata(AnnotationMetadata importMetadata) {
-
         Map<String, Object> enableAttrMap = importMetadata.getAnnotationAttributes(EnableAerospikeHttpSession.class
                 .getName());
         AnnotationAttributes enableAttrs = AnnotationAttributes.fromMap(enableAttrMap);
@@ -138,7 +142,6 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     public void setHttpSessionStrategy(HttpSessionStrategy httpSessionStrategy) {
         this.httpSessionStrategy = httpSessionStrategy;
     }
-
 
     /*
      * (non-Javadoc)

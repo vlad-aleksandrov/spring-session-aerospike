@@ -15,7 +15,7 @@
  */
 package v.a.org.springframework.session.configuration;
 
-import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SUPERVISOR;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.*;
 
 import javax.inject.Inject;
 
@@ -44,15 +44,59 @@ public class ActorsConfiguration {
     @Bean(destroyMethod = "shutdown")
     @DependsOn("springExtension")
     public ActorSystem actorSystem() {
-        ActorSystem system = ActorSystem.create("AkkaControlSessionsProcessing", akkaConfiguration());
-        return system;
+        ActorSystem actorSystem = ActorSystem.create("ManageSessions", akkaConfiguration());
+        return actorSystem;
     }
 
+    /**
+     * Session remover actor reference.
+     * @param actorSystem
+     * @param ext
+     * @return
+     */
     @Bean
     @Inject
-    public ActorRef supervisorRef(ActorSystem actorSystem, SpringExtension ext) {
-        return actorSystem.actorOf(ext.props(SUPERVISOR), SUPERVISOR);
+    public ActorRef removerRef(ActorSystem actorSystem, SpringExtension ext) {
+        return actorSystem.actorOf(ext.props(SEESION_REMOVER), SEESION_REMOVER);
     }
+    
+    /**
+     * Expired sessions caretaker actor reference.
+     * @param actorSystem
+     * @param ext
+     * @return
+     */
+    @Bean
+    @Inject
+    public ActorRef expiredSessionsCaretakerRef(ActorSystem actorSystem, SpringExtension ext) {
+        return actorSystem.actorOf(ext.props(EXPIRED_SESSIONS_CARETAKER), EXPIRED_SESSIONS_CARETAKER);
+    }
+    
+    /**
+     * Session deleted notifier actor reference.
+     * @param actorSystem
+     * @param ext
+     * @return
+     */
+    @Bean
+    @Inject
+    public ActorRef notifierRef(ActorSystem actorSystem, SpringExtension ext) {
+        return actorSystem.actorOf(ext.props(SESSION_DELETED_NOTIFIER), SESSION_DELETED_NOTIFIER);
+    }
+    
+    /**
+     * Session attributes serializer actor reference.
+     * @param actorSystem
+     * @param ext
+     * @return
+     */
+    @Bean
+    @Inject
+    public ActorRef serializerRef(ActorSystem actorSystem, SpringExtension ext) {
+        return actorSystem.actorOf(ext.props(SESSION_SERIALIZER), SESSION_SERIALIZER);
+    }
+    
+    
 
     /**
      * Reads configuration from {@code classpath:/application.conf} file

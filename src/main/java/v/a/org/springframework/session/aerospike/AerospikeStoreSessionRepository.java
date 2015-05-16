@@ -16,16 +16,17 @@
 
 package v.a.org.springframework.session.aerospike;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.EXPIRED_SESSIONS_CARETAKER;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SEESION_REMOVER;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SESSION_FETCHER;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SESSION_PERSISTER;
+
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.session.ExpiringSession;
 import org.springframework.session.MapSession;
 import org.springframework.session.Session;
@@ -35,16 +36,16 @@ import org.springframework.session.events.SessionDestroyedEvent;
 import org.springframework.session.web.http.SessionRepositoryFilter;
 import org.springframework.util.Assert;
 
+import scala.concurrent.Await;
+import scala.concurrent.Future;
+import scala.concurrent.duration.Duration;
+import v.a.org.springframework.session.messages.FetchSession;
 import v.a.org.springframework.session.messages.SessionSnapshot;
-import v.a.org.springframework.store.StoreCompression;
-import v.a.org.springframework.store.StoreSerializer;
-import v.a.org.springframework.store.aerospike.AerospikeOperations;
-import v.a.org.springframework.store.kryo.KryoStoreSerializer;
+import v.a.org.springframework.session.support.SpringExtension;
 import akka.actor.ActorRef;
-
-import com.aerospike.client.Bin;
-import com.aerospike.client.Record;
-import com.aerospike.client.query.IndexType;
+import akka.actor.ActorSystem;
+import akka.pattern.Patterns;
+import akka.util.Timeout;
 
 /**
  * <p>
@@ -153,15 +154,11 @@ public class AerospikeStoreSessionRepository implements
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-
-    private final AerospikeOperations<String> sessionAerospikeOperations;
-
-    private final ActorRef supervisorRef;
+    private final ActorSystem actorSystem;
+    private final SpringExtension springExtension;
 
     private final AerospikeSessionExpirationPolicy expirationPolicy;
 
-    @SuppressWarnings("rawtypes")
-    private final StoreSerializer<HashMap> sessionAttriburesSerializer;
 
     /**
      * If non-null, this value is used to override the default value for
@@ -172,17 +169,13 @@ public class AerospikeStoreSessionRepository implements
     /**
      * Creates a new instance.
      *
-     * @param sessionAerospikeOperations
-     *            The {@link AerospikeOperations} to use for managing the sessions. Cannot be null.
      */
-    @SuppressWarnings("rawtypes")
-    public AerospikeStoreSessionRepository(AerospikeOperations<String> sessionAerospikeOperations,
-            ActorRef supervisorRef) {
-        Assert.notNull(sessionAerospikeOperations, "sessionAerospikeOperations cannot be null");
-        this.supervisorRef = supervisorRef;
-        this.sessionAerospikeOperations = sessionAerospikeOperations;
-        this.expirationPolicy = new AerospikeSessionExpirationPolicy(supervisorRef);
-        this.sessionAttriburesSerializer = new KryoStoreSerializer<HashMap>(StoreCompression.SNAPPY);
+    public AerospikeStoreSessionRepository(ActorSystem actorSystem, SpringExtension springExtension) {
+        Assert.notNull(actorSystem, "actorSystem cannot be null");
+        Assert.notNull(springExtension, "springExtension cannot be null");
+        this.actorSystem = actorSystem;
+        this.springExtension = springExtension;
+        this.expirationPolicy = new AerospikeSessionExpirationPolicy(actorSystem.actorSelection(SEESION_REMOVER), actorSystem.actorSelection(EXPIRED_SESSIONS_CARETAKER));
 
         // create secondary index on "expired" bin
         //sessionAerospikeOperations.createIndex(EXPIRED_BIN, EXPIRED_INDEX, IndexType.NUMERIC);
@@ -201,7 +194,9 @@ public class AerospikeStoreSessionRepository implements
     }
 
     public void save(final AerospikeSession session) {
-        supervisorRef.tell(createSessionSnapshot(session), null);
+        // Create "per-request" persister actor and hand over a session snapshot to be saved
+        ActorRef persisterRef = actorSystem.actorOf(springExtension.props(SESSION_PERSISTER), SESSION_PERSISTER + "_" + UUID.randomUUID());
+        persisterRef.tell(createSessionSnapshot(session), null);
     }
 
     //@Scheduled(cron = "0 * * * * *")
@@ -210,6 +205,23 @@ public class AerospikeStoreSessionRepository implements
     }
 
     public AerospikeSession getSession(String id) {
+        // Create "per-request" fetcher actor and hand over a session id to be fetched
+        ActorRef fetcherRef = actorSystem.actorOf(springExtension.props(SESSION_FETCHER), SESSION_FETCHER + "_" + UUID.randomUUID());
+
+        Timeout timeout = new Timeout(Duration.create(600, "seconds"));
+        Future<Object> future = Patterns.ask(fetcherRef, new FetchSession(id), timeout);
+
+        // this blocks current running thread
+        try {
+            Object result = Await.result(future, timeout.duration());
+            log.debug("{}", result);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        
+        //MapSession
+        
         return getSession(id, false);
     }
 
@@ -304,7 +316,7 @@ public class AerospikeStoreSessionRepository implements
         private boolean updated = false;
 
         /**
-         * Creates a new instance ensuring to mark all of the new attributes to be persisted in the next save operation.
+         * Creates a new instance.
          */
         AerospikeSession() {
             this(new MapSession());

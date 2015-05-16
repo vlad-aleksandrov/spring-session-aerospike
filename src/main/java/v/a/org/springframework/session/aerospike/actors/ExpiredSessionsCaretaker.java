@@ -27,8 +27,8 @@ import javax.inject.Inject;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import v.a.org.springframework.session.messages.ClearExpiredSessions;
 import v.a.org.springframework.session.messages.DeleteSession;
+import v.a.org.springframework.session.messages.SessionControlEvent;
 import v.a.org.springframework.store.aerospike.AerospikeOperations;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -49,7 +49,7 @@ public class ExpiredSessionsCaretaker extends UntypedActor {
     @Override
     public void onReceive(Object message) throws Exception {
         log.debug("handle message {}", message);
-        if (message instanceof ClearExpiredSessions) {
+        if (message == SessionControlEvent.CLEAR_EXPIRED_SESSIONS) {
             Set<String> expiredSession = aerospikeOperations.fetchRange(SESSION_ID_BIN, EXPIRED_BIN, 0L,
                     System.currentTimeMillis());
             for (String sessionId : expiredSession) {
