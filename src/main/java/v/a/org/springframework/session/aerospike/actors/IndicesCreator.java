@@ -15,31 +15,27 @@
  */
 package v.a.org.springframework.session.aerospike.actors;
 
-import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.EXPIRED_SESSIONS_CARETAKER;
-import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SEESION_REMOVER;
-import static v.a.org.springframework.session.aerospike.actors.PersistentSessionAerospike.EXPIRED_BIN;
-import static v.a.org.springframework.session.aerospike.actors.PersistentSessionAerospike.SESSION_ID_BIN;
-
-import java.util.Set;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.INDICES_CREATOR;
+import static v.a.org.springframework.session.messages.SessionControlEvent.CREATE_INDICES;
 
 import javax.inject.Inject;
 
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import v.a.org.springframework.session.messages.DeleteSession;
-import v.a.org.springframework.session.messages.SessionControlEvent;
 import v.a.org.springframework.store.aerospike.AerospikeOperations;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
+import com.aerospike.client.query.IndexType;
+
 /**
- * Actor handles expired sessions .
+ * Actor handles indices creation. Currently only one secondary index on session expiration timestamp is created.
  */
-@Component(EXPIRED_SESSIONS_CARETAKER)
+@Component(INDICES_CREATOR)
 @Scope("prototype")
-public class ExpiredSessionsCaretaker extends UntypedActor {
+public class IndicesCreator extends UntypedActor {
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
 
@@ -49,17 +45,13 @@ public class ExpiredSessionsCaretaker extends UntypedActor {
     @Override
     public void onReceive(Object message) throws Exception {
         log.debug("handle message {}", message);
-        if (message == SessionControlEvent.CLEAR_EXPIRED_SESSIONS) {
-            Set<String> expiredSession = aerospikeOperations.fetchRange(SESSION_ID_BIN, EXPIRED_BIN, 0L,
-                    System.currentTimeMillis());
-            for (String sessionId : expiredSession) {
-                getContext().actorSelection("/user/" + SEESION_REMOVER).tell(new DeleteSession(sessionId), self());
-            }
-
+        if (message == CREATE_INDICES) {
+            aerospikeOperations.createIndex(PersistentSessionAerospike.EXPIRED_BIN,
+                    PersistentSessionAerospike.EXPIRED_INDEX, IndexType.NUMERIC);
         } else {
-            log.error("Unable to handle message {}", message);
             unhandled(message);
         }
+
     }
 
 }

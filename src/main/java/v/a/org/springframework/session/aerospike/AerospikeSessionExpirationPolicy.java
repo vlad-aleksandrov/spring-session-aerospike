@@ -43,7 +43,7 @@ final class AerospikeSessionExpirationPolicy {
     }
 
     public void onDelete(final String sessionId) {
-        log.debug("Session '{}' deleted.", sessionId);
+        log.debug("Session '{}' is going to be deleted.", sessionId);
         this.removerActor.tell(new DeleteSession(sessionId), null);
     }
 

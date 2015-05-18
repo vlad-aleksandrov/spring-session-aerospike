@@ -16,10 +16,7 @@
 
 package v.a.org.springframework.session.aerospike;
 
-import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.EXPIRED_SESSIONS_CARETAKER;
-import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SEESION_REMOVER;
-import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SESSION_FETCHER;
-import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SESSION_PERSISTER;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.*;
 
 import java.util.Set;
 import java.util.UUID;
@@ -40,10 +37,12 @@ import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import v.a.org.springframework.session.messages.FetchSession;
+import v.a.org.springframework.session.messages.SessionControlEvent;
 import v.a.org.springframework.session.messages.SessionSnapshot;
 import v.a.org.springframework.session.support.SpringExtension;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.PoisonPill;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
@@ -159,7 +158,6 @@ public class AerospikeStoreSessionRepository implements
 
     private final AerospikeSessionExpirationPolicy expirationPolicy;
 
-
     /**
      * If non-null, this value is used to override the default value for
      * {@link AerospikeSession#setMaxInactiveIntervalInSeconds(int)}.
@@ -175,10 +173,14 @@ public class AerospikeStoreSessionRepository implements
         Assert.notNull(springExtension, "springExtension cannot be null");
         this.actorSystem = actorSystem;
         this.springExtension = springExtension;
-        this.expirationPolicy = new AerospikeSessionExpirationPolicy(actorSystem.actorSelection(SEESION_REMOVER), actorSystem.actorSelection(EXPIRED_SESSIONS_CARETAKER));
+        this.expirationPolicy = new AerospikeSessionExpirationPolicy(actorSystem.actorSelection("/user/"
+                + SEESION_REMOVER), actorSystem.actorSelection("/user/" + EXPIRED_SESSIONS_CARETAKER));
 
         // create secondary index on "expired" bin
-        //sessionAerospikeOperations.createIndex(EXPIRED_BIN, EXPIRED_INDEX, IndexType.NUMERIC);
+        ActorRef indicesCreatorRef = actorSystem.actorOf(springExtension.props(INDICES_CREATOR), INDICES_CREATOR);
+        indicesCreatorRef.tell(SessionControlEvent.CREATE_INDICES, null);
+        // since we need this actor only once, stop it right away
+        indicesCreatorRef.tell(PoisonPill.getInstance(), null);
     }
 
     /**
@@ -195,77 +197,47 @@ public class AerospikeStoreSessionRepository implements
 
     public void save(final AerospikeSession session) {
         // Create "per-request" persister actor and hand over a session snapshot to be saved
-        ActorRef persisterRef = actorSystem.actorOf(springExtension.props(SESSION_PERSISTER), SESSION_PERSISTER + "_" + UUID.randomUUID());
+        ActorRef persisterRef = actorSystem.actorOf(springExtension.props(SESSION_PERSISTER), SESSION_PERSISTER + "_"
+                + UUID.randomUUID());
         persisterRef.tell(createSessionSnapshot(session), null);
     }
 
-    //@Scheduled(cron = "0 * * * * *")
+    // @Scheduled(cron = "0 * * * * *")
     public void cleanupExpiredSessions() {
         this.expirationPolicy.cleanExpiredSessions();
     }
 
     public AerospikeSession getSession(String id) {
         // Create "per-request" fetcher actor and hand over a session id to be fetched
-        ActorRef fetcherRef = actorSystem.actorOf(springExtension.props(SESSION_FETCHER), SESSION_FETCHER + "_" + UUID.randomUUID());
+        ActorRef fetcherRef = actorSystem.actorOf(springExtension.props(SESSION_FETCHER),
+                SESSION_FETCHER + "_" + UUID.randomUUID());
 
-        Timeout timeout = new Timeout(Duration.create(600, "seconds"));
+        Timeout timeout = new Timeout(Duration.create(300, "seconds"));
         Future<Object> future = Patterns.ask(fetcherRef, new FetchSession(id), timeout);
 
         // this blocks current running thread
+        long start = System.nanoTime();
         try {
             Object result = Await.result(future, timeout.duration());
             log.debug("{}", result);
+            if (result == SessionControlEvent.NOT_FOUND) {
+                log.warn("Session {} not found", id);
+                return null;
+            } else if (result instanceof MapSession) {
+                final AerospikeSession session = new AerospikeSession((MapSession) result);
+                session.setLastAccessedTime(System.currentTimeMillis());
+                return session;
+            } else {
+                log.error("Unknown response: {}", result);
+                return null;
+            }
         } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        
-        //MapSession
-        
-        return getSession(id, false);
-    }
-
-    /**
-     *
-     * @param id
-     *            the session id
-     * @param allowExpired
-     *            if true, will also include expired sessions that have not been
-     *            deleted. If false, will ensure expired sessions are not
-     *            returned.
-     * @return
-     */
-    private AerospikeSession getSession(String id, boolean allowExpired) {
-        /*
-        final Record sessionRecord = sessionAerospikeOperations.fetch(id);
-        if (sessionRecord == null) {
-            log.debug("Session {} not found in store", id);
+            log.error("Session {} fetch problem", id, e);
             return null;
+        } finally {
+            log.trace("Session load: {} ns", System.nanoTime() - start);
         }
 
-        // reconstruct Aerospike session - extract metadata first
-        final MapSession loaded = new MapSession();
-        loaded.setId(id);
-        loaded.setCreationTime(sessionRecord.getLong(CREATION_TIME_BIN));
-        loaded.setMaxInactiveIntervalInSeconds(sessionRecord.getInt(MAX_INACTIVE_BIN));
-        loaded.setLastAccessedTime(sessionRecord.getLong(LAST_ACCESSED_BIN));
-        if (!allowExpired && loaded.isExpired()) {
-            return null;
-        }
-        // now extract session attributes
-        final byte[] serializedAttributes = (byte[]) sessionRecord.getValue(SESSION_ATTRIBUTES_BIN);
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> storedAttributes = sessionAttriburesSerializer.deserialize(serializedAttributes,
-                HashMap.class);
-        for (Map.Entry<String, Object> entry : storedAttributes.entrySet()) {
-            final String key = entry.getKey();
-            final Object value = entry.getValue();
-            loaded.setAttribute(key, value);
-        }
-        */
-        final AerospikeSession result = new AerospikeSession(new MapSession()); // loaded
-        result.setLastAccessedTime(System.currentTimeMillis());
-        return result;
     }
 
     /**

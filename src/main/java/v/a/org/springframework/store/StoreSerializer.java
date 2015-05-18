@@ -15,7 +15,6 @@
  */
 package v.a.org.springframework.store;
 
-
 /**
  * Basic interface serialization and deserialization of Objects to byte arrays (binary data). It is recommended that
  * implementations are designed to handle null objects/empty arrays on serialization and deserialization side.
@@ -42,10 +41,5 @@ public interface StoreSerializer<T> {
      * @return the equivalent object instance
      */
     T deserialize(byte[] bytes, Class<T> type) throws SerializationException;
-    
-    /**
-     * Cleanup resources.
-     */
-    void cleanup();
 
 }

@@ -42,6 +42,8 @@ import de.javakaffee.kryoserializers.KryoReflectionFactorySupport;
 
 /**
  * Kryo serializer.
+ * <p/>
+ * <strong>Not thread safe!</strong>
  *
  * @param <T>
  */
@@ -53,34 +55,27 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
      * Compression type. Default is {@link StoreCompression.NONE}.
      */
     private StoreCompression compressionType = StoreCompression.NONE;
+    
+    private Kryo kryo;
 
-    /**
-     * Setup ThreadLocal of Kryo instances, so this implementation will be thread-safe.
-     */
-    private ThreadLocal<Kryo> kryos = new ThreadLocal<Kryo>() {
-        protected Kryo initialValue() {
-            // configure kryo instance, customize settings
-            final Kryo kryo = new KryoReflectionFactorySupport();
-            kryo.addDefaultSerializer(Locale.class, LocaleSerializer.class);
-            return kryo;
-        };
-    };
 
     public KryoStoreSerializer() {
+        init();
     }
 
     public KryoStoreSerializer(final StoreCompression compressionType) {
         this.compressionType = compressionType;
+        init();
+    }
+    
+    private void init() {
+        kryo = new KryoReflectionFactorySupport();
+        kryo.addDefaultSerializer(Locale.class, LocaleSerializer.class);
     }
 
-    @Override
-    public void cleanup() {
-        kryos = null;
-    }
 
     @Override
     public byte[] serialize(final T data) throws SerializationException {
-        final Kryo kryo = kryos.get();
         try (
                 final ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);
                 final OutputStream compressionOutputStream = wrapOutputStream(outputStream);
@@ -100,7 +95,6 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
 
     @Override
     public T deserialize(final byte[] serializedData, final Class<T> type) throws SerializationException {
-        final Kryo kryo = kryos.get();
         try (
                 final ByteArrayInputStream inputStream = new ByteArrayInputStream(serializedData);
                 final InputStream decompressionInputStream = wrapInputStream(inputStream);

@@ -74,8 +74,8 @@ public class SessionPersister extends UntypedActor {
     private final Set<Bin> binsToSave = new HashSet<>();
 
     private SessionPersister() {
-        // give this actor 30 sec to complete its task
-        getContext().setReceiveTimeout(Duration.create("3000 seconds"));
+        // give this actor 5 sec to complete its task
+        getContext().setReceiveTimeout(Duration.create("5 seconds"));
     }
 
     @Override
@@ -109,7 +109,7 @@ public class SessionPersister extends UntypedActor {
 
     @Override
     public void postStop() throws Exception {
-        log.info("Shutting down");
+        log.debug("Shutting down {}", this);
         super.postStop();
     }
 

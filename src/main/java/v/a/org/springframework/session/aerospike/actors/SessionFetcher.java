@@ -64,8 +64,8 @@ public class SessionFetcher extends UntypedActor {
     private ActorRef requester;
 
     private SessionFetcher() {
-        // give this actor 30 sec to complete its task
-        getContext().setReceiveTimeout(Duration.create("3000 seconds"));
+        // give this actor 5 sec to complete its task
+        getContext().setReceiveTimeout(Duration.create("5 seconds"));
     }
 
     @Override
@@ -106,9 +106,10 @@ public class SessionFetcher extends UntypedActor {
                 loaded.setAttribute(key, value);
             }
             requester.tell(loaded, getSelf());
+            getSelf().tell(PoisonPill.getInstance(), getSelf());
         }
         else if (message instanceof ReceiveTimeout) {
-            log.error("Unable to fetch session {} in time. Aborting!", message);
+            log.error("Unable to fetch session {} in time. Aborting!", sessionId);
             getContext().stop(getSelf());
         }
         else {
@@ -120,7 +121,7 @@ public class SessionFetcher extends UntypedActor {
 
     @Override
     public void postStop() throws Exception {
-        log.info("Shutting down");
+        log.info("Shutting down {}", this);
         super.postStop();
     }
 
