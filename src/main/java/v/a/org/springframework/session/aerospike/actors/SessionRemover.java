@@ -14,7 +14,10 @@
  * the License.
  */
 package v.a.org.springframework.session.aerospike.actors;
-import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.*;
+
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.DELETE_SESSION_WORKER;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SEESION_REMOVER;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,18 +46,21 @@ import akka.routing.SmallestMailboxRoutingLogic;
 public class SessionRemover extends UntypedActor {
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
-        
+
     @Inject
     private SpringExtension springExtension;
 
     private Router router;
-        
+
     @Override
     public void preStart() throws Exception {
-        log.debug("Starting up");
+        log.debug("Starting up {}", this);
         List<Routee> routees = new ArrayList<>();
+        
+        
+        int poolSize = context().system().settings().config().getInt("session.aerospike.actors.remover.workers");
         // initialize multiple janitor workers
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < poolSize; i++) {
             ActorRef actor = getContext().actorOf(springExtension.props(DELETE_SESSION_WORKER));
             getContext().watch(actor);
             routees.add(new ActorRefRoutee(actor));
@@ -63,13 +69,12 @@ public class SessionRemover extends UntypedActor {
         router = new Router(new SmallestMailboxRoutingLogic(), routees);
         super.preStart();
     }
-    
-    
+
     @Override
     public void onReceive(Object message) throws Exception {
         log.info("handle message {}", message);
         if (message instanceof DeleteSession) {
-            router.route(message, getSender());            
+            router.route(message, getSender());
         } else if (message instanceof Terminated) {
             // Readd workers if one failed
             router = router.removeRoutee(((Terminated) message).actor());
@@ -80,7 +85,5 @@ public class SessionRemover extends UntypedActor {
             log.error("Unable to handle message {}", message);
         }
     }
-
-
 
 }

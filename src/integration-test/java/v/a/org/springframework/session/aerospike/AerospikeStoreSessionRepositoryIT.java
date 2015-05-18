@@ -58,7 +58,7 @@ public class AerospikeStoreSessionRepositoryIT extends BaseIntegrationTest {
         log.info("New session to store: {}", sessionId);
         repository.save(s);
 
-        Thread.sleep(1000L);
+        Thread.sleep(500L);
 
         final AerospikeSession loadedSession = repository.getSession(sessionId);
 

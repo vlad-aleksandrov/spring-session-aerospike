@@ -23,16 +23,15 @@ import java.util.Map;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import com.google.common.collect.ImmutableMap;
-
 import v.a.org.springframework.session.messages.SessionAttributes;
 import v.a.org.springframework.session.messages.SessionAttributesBinary;
 import v.a.org.springframework.store.StoreCompression;
 import v.a.org.springframework.store.StoreSerializer;
-import v.a.org.springframework.store.kryo.KryoStoreSerializer;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Actor handles session serialization/deserialization. The session attributes are serialized as standard
@@ -45,7 +44,24 @@ public class SessionSerializerWorker extends UntypedActor {
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
 
     @SuppressWarnings("rawtypes")
-    private StoreSerializer<HashMap> converter = new KryoStoreSerializer<>(StoreCompression.SNAPPY);
+    private StoreSerializer<HashMap> converter;
+    
+
+    /**
+     * Configures serializer implementation and and compression type
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public void preStart() throws Exception {
+        String className = context().system().settings().config()
+                .getString("session.aerospike.actors.serializer.class");
+        log.info("Session store serializer: {}", className);
+        StoreCompression compression = StoreCompression.valueOf(context().system().settings().config()
+                .getString("session.aerospike.actors.serializer.compression"));
+        log.info("Session store compression: {}", compression);
+        converter = (StoreSerializer<HashMap>) Class.forName(className)
+                .getConstructor(StoreCompression.class).newInstance(compression);
+    }
 
     @Override
     public void onReceive(Object message) throws Exception {

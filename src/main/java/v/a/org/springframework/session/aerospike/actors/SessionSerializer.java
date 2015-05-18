@@ -40,7 +40,7 @@ import akka.routing.Router;
 import akka.routing.SmallestMailboxRoutingLogic;
 
 /**
- * Actor handles sessions attributes serialization. Ot maintains it's own pool of serialization workers
+ * Actor handles sessions attributes serialization. It maintains it's own pool of serialization workers
  */
 @Component(SESSION_SERIALIZER)
 @Scope("prototype")
@@ -55,10 +55,12 @@ public class SessionSerializer extends UntypedActor {
 
     @Override
     public void preStart() throws Exception {
-        log.debug("Starting up");
+        log.debug("Starting up {}", this);
         List<Routee> routees = new ArrayList<>();
         // initialize multiple serialization workers
-        for (int i = 0; i < 20; i++) {
+        int poolSize = context().system().settings().config().getInt("session.aerospike.actors.serializer.workers");
+
+        for (int i = 0; i < poolSize; i++) {
             ActorRef actor = getContext().actorOf(springExtension.props(SERIALIZE_SESSION_WORKER));
             getContext().watch(actor);
             routees.add(new ActorRefRoutee(actor));
