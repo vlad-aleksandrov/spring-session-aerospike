@@ -35,6 +35,7 @@ dependencies {
 	compile "javax.servlet:javax.servlet-api:$servletApiVersion"
 	compile "com.esotericsoftware:kryo-shaded:$kryoVersion"
 	compile "de.javakaffee:kryo-serializers:$kryoSerializersVersion"
+	compile "de.ruedigermoeller:fst:$fstSerializersVersion"
 	compile "org.iq80.snappy:snappy:$snappyVersion"
 	compile "com.google.guava:guava:$guavaVersion"
 
