@@ -82,15 +82,23 @@ public class SessionFetcher extends UntypedActor {
                 // reconstruct Aerospike session - extract metadata first
                 loaded = new MapSession();
                 loaded.setId(this.sessionId);
+                log.debug("Session id: {}", loaded.getId());
                 loaded.setCreationTime(sessionRecord.getLong(CREATION_TIME_BIN));
+                log.debug("Session created: {}", loaded.getCreationTime());
                 loaded.setMaxInactiveIntervalInSeconds(sessionRecord.getInt(MAX_INACTIVE_BIN));
+                log.debug("Session max inactive interval: {}", loaded.getMaxInactiveIntervalInSeconds());
                 loaded.setLastAccessedTime(sessionRecord.getLong(LAST_ACCESSED_BIN));
+                log.debug("Session last access time: {}", loaded.getLastAccessedTime());
                 if (loaded.isExpired()) {
                     notifyNotFound();
                 } else {
                     // now extract session attributes as byte array and send it to converter for deserialization, expecting
                     // hashmap of attributes back for future processing
                     final byte[] serializedAttributes = (byte[]) sessionRecord.getValue(SESSION_ATTRIBUTES_BIN);
+                    if (serializedAttributes == null) {
+                        log.warn("Session {} serialized arrtubures is null", sessionId);
+                        notifyNotFound();
+                    }
                     getContext().actorSelection("../" + SESSION_SERIALIZER).tell(
                             new SessionAttributesBinary(serializedAttributes), self());
                 }
