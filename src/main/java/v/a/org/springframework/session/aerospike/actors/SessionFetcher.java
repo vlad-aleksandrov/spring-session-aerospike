@@ -96,7 +96,7 @@ public class SessionFetcher extends UntypedActor {
                     // hashmap of attributes back for future processing
                     final byte[] serializedAttributes = (byte[]) sessionRecord.getValue(SESSION_ATTRIBUTES_BIN);
                     if (serializedAttributes == null) {
-                        log.warn("Session {} serialized arrtubures is null", sessionId);
+                        log.debug("Session {} serialized arrtubures is null", sessionId);
                         notifyNotFound();
                     }
                     getContext().actorSelection("../" + SESSION_SERIALIZER).tell(

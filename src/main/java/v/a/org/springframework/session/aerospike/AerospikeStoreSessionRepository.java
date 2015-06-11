@@ -212,8 +212,8 @@ public class AerospikeStoreSessionRepository implements
         // Create "per-request" fetcher actor and hand over a session id to be fetched
         ActorRef fetcherRef = actorSystem.actorOf(springExtension.props(SESSION_FETCHER),
                 SESSION_FETCHER + "_" + UUID.randomUUID());
-
-        Timeout timeout = new Timeout(Duration.create(300, "seconds"));
+                
+        Timeout timeout = new Timeout(Duration.create(actorSystem.settings().config().getInt("session.aerospike.fetch-timeout"), "seconds"));
         Future<Object> future = Patterns.ask(fetcherRef, new FetchSession(id), timeout);
 
         // this blocks current running thread
@@ -233,7 +233,8 @@ public class AerospikeStoreSessionRepository implements
                 return null;
             }
         } catch (Exception e) {
-            log.error("Session {} fetch problem", id, e);
+            log.error("Session {} fetch problem: {}", id, e.getMessage());
+            log.debug("", e);
             return null;
         } finally {
             log.trace("Session load: {} ns", System.nanoTime() - start);
