@@ -15,10 +15,14 @@
  */
 package v.a.org.springframework.session.messages;
 
+import java.io.Serializable;
+
 /**
  * Deleted session notification event.
  */
-public class SessionDeletedNotification extends BaseSessionIdentity {
+public class SessionDeletedNotification extends BaseSessionIdentity implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     public SessionDeletedNotification(String id) {
         super(id);
