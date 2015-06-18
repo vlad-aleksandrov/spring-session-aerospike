@@ -171,7 +171,9 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
                 Key key = rs.getKey();
                 log.trace("Found key: {}", key);
                 Record record = getAerospikeClient().get(readPolicy, key, idBinName);
-                result.add(record.getString(idBinName));
+                if (record != null) {
+                    result.add(record.getString(idBinName));
+                }
             }
         } finally {
             rs.close();
