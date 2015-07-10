@@ -15,10 +15,18 @@
  */
 package v.a.org.springframework.session.messages;
 
-public abstract class BaseSessionIdentity {
-    
+import java.io.Serializable;
+
+public abstract class BaseSessionIdentity implements Serializable {
+
+    private static final long serialVersionUID = 2L;
+
     private final String id;
-    
+
+    public BaseSessionIdentity() {
+        this.id = null;
+    }
+
     public BaseSessionIdentity(String id) {
         this.id = id;
     }
