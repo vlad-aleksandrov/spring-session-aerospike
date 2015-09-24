@@ -15,8 +15,8 @@
  */
 package v.a.org.springframework.session.aerospike.actors;
 
-import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SERIALIZE_SESSION_WORKER;
-import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SESSION_SERIALIZER;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SERIALIZE_ATTRIBUTE_WORKER;
+import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.ATTRIBUTE_SERIALIZER;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,11 +40,11 @@ import akka.routing.Router;
 import akka.routing.SmallestMailboxRoutingLogic;
 
 /**
- * Actor handles sessions attributes serialization. It maintains it's own pool of serialization workers
+ * Actor handles sessions attributes serialization. It maintains it's own pool of serialization workers.
  */
-@Component(SESSION_SERIALIZER)
+@Component(ATTRIBUTE_SERIALIZER)
 @Scope("prototype")
-public class SessionSerializer extends UntypedActor {
+public class AttributeSerializer extends UntypedActor {
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
 
@@ -55,13 +55,13 @@ public class SessionSerializer extends UntypedActor {
 
     @Override
     public void preStart() throws Exception {
-        log.debug("Starting up {}", this);
+        log.trace("Starting up {}", this);
         List<Routee> routees = new ArrayList<>();
         // initialize multiple serialization workers
-        int poolSize = context().system().settings().config().getInt("session.aerospike.actors.serializer.workers");
+        int poolSize = context().system().settings().config().getInt("session.aerospike.actors.attributeserializer.workers");
 
         for (int i = 0; i < poolSize; i++) {
-            ActorRef actor = getContext().actorOf(springExtension.props(SERIALIZE_SESSION_WORKER));
+            ActorRef actor = getContext().actorOf(springExtension.props(SERIALIZE_ATTRIBUTE_WORKER));
             getContext().watch(actor);
             routees.add(new ActorRefRoutee(actor));
         }
@@ -72,13 +72,13 @@ public class SessionSerializer extends UntypedActor {
 
     @Override
     public void onReceive(Object message) throws Exception {
-        log.debug("handle message {}", message);
-        if (message instanceof SessionAttributes || message instanceof SessionAttributesBinary) {
+        log.trace("handle message {}", message);
+        if (message instanceof SessionAttributes || message instanceof AttributeSerializationRequest) {
             router.route(message, getSender());
         } else if (message instanceof Terminated) {
             // Readd workers if one failed
             router = router.removeRoutee(((Terminated) message).actor());
-            ActorRef actor = getContext().actorOf(springExtension.props(SERIALIZE_SESSION_WORKER));
+            ActorRef actor = getContext().actorOf(springExtension.props(SERIALIZE_ATTRIBUTE_WORKER));
             getContext().watch(actor);
             router = router.addRoutee(new ActorRefRoutee(actor));
         } else {

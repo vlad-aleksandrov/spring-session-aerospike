@@ -85,7 +85,7 @@ public class ActorsConfiguration {
     }
     
     /**
-     * Session attributes serializer actor reference.
+     * Session serializer actor reference.
      * @param actorSystem
      * @param ext
      * @return
@@ -96,6 +96,17 @@ public class ActorsConfiguration {
         return actorSystem.actorOf(ext.props(SESSION_SERIALIZER), SESSION_SERIALIZER);
     }
     
+    /**
+     * Session attribute serializer actor reference.
+     * @param actorSystem
+     * @param ext
+     * @return
+     */
+    @Bean
+    @Inject
+    public ActorRef attributeSerializerRef(ActorSystem actorSystem, SpringExtension ext) {
+        return actorSystem.actorOf(ext.props(ATTRIBUTE_SERIALIZER), ATTRIBUTE_SERIALIZER);
+    }
     
 
     /**

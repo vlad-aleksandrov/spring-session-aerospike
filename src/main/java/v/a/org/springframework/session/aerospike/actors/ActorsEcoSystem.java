@@ -30,6 +30,9 @@ public abstract class ActorsEcoSystem {
 
     public final static String SESSION_SERIALIZER = "sessionSerializer";
     final static String SERIALIZE_SESSION_WORKER = "serializeSessionWorker";
+    
+    public final static String ATTRIBUTE_SERIALIZER = "attributeSerializer";
+    final static String SERIALIZE_ATTRIBUTE_WORKER = "serializeAttributeWorker";
 
     public final static String SESSION_PERSISTER = "sessionPersister";
 

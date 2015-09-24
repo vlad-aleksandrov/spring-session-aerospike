@@ -23,9 +23,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationHandler;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.Locale;
 
 import org.iq80.snappy.SnappyInputStream;
@@ -33,6 +35,7 @@ import org.iq80.snappy.SnappyOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import v.a.org.springframework.session.messages.SerializedAttribute;
 import v.a.org.springframework.store.SerializationException;
 import v.a.org.springframework.store.StoreCompression;
 import v.a.org.springframework.store.StoreSerializer;
@@ -86,7 +89,7 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
     private void init() {
         kryo = new KryoReflectionFactorySupport();
         kryo.addDefaultSerializer(Locale.class, LocaleSerializer.class);
-        
+
         kryo.register(Arrays.asList("").getClass(), new ArraysAsListSerializer());
         kryo.register(Collections.EMPTY_LIST.getClass(), new CollectionsEmptyListSerializer());
         kryo.register(Collections.EMPTY_MAP.getClass(), new CollectionsEmptyMapSerializer());
@@ -101,6 +104,11 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
 
         // guava ImmutableList
         ImmutableListSerializer.registerSerializers(kryo);
+
+        // Register our types
+        kryo.register(SerializedAttribute.class, 128);
+        kryo.register(HashMap.class, 129);
+        kryo.register(AbstractMap.SimpleImmutableEntry.class, 130);
 
     }
 
