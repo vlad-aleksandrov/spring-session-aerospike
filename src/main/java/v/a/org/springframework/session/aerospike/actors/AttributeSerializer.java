@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import v.a.org.springframework.session.messages.AttributeSerializationRequest;
 import v.a.org.springframework.session.messages.SessionAttributes;
 import v.a.org.springframework.session.messages.SessionAttributesBinary;
 import v.a.org.springframework.session.support.SpringExtension;
@@ -55,7 +56,7 @@ public class AttributeSerializer extends UntypedActor {
 
     @Override
     public void preStart() throws Exception {
-        log.trace("Starting up {}", this);
+        log.debug("Starting up {}", this);
         List<Routee> routees = new ArrayList<>();
         // initialize multiple serialization workers
         int poolSize = context().system().settings().config().getInt("session.aerospike.actors.attributeserializer.workers");
@@ -72,7 +73,7 @@ public class AttributeSerializer extends UntypedActor {
 
     @Override
     public void onReceive(Object message) throws Exception {
-        log.trace("handle message {}", message);
+        log.debug("handle message {}", message);
         if (message instanceof SessionAttributes || message instanceof AttributeSerializationRequest) {
             router.route(message, getSender());
         } else if (message instanceof Terminated) {

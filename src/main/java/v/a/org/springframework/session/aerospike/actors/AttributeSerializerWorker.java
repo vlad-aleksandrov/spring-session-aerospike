@@ -16,25 +16,17 @@
 package v.a.org.springframework.session.aerospike.actors;
 
 import static v.a.org.springframework.session.aerospike.actors.ActorsEcoSystem.SERIALIZE_ATTRIBUTE_WORKER;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import v.a.org.springframework.session.messages.AttributeSerializationRequest;
 import v.a.org.springframework.session.messages.AttributeSerializationResponse;
-import v.a.org.springframework.session.messages.SessionAttributes;
-import v.a.org.springframework.session.messages.SessionAttributesBinary;
+import v.a.org.springframework.store.SerializationException;
 import v.a.org.springframework.store.StoreCompression;
 import v.a.org.springframework.store.StoreSerializer;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
-import com.google.common.collect.ImmutableMap;
-import com.sun.xml.internal.ws.encoding.soap.SerializationException;
 
 /**
  * Actor handles session serialization/deserialization. The session attributes are serialized as standard
@@ -46,7 +38,7 @@ public class AttributeSerializerWorker extends UntypedActor {
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes" })
     private StoreSerializer<Object> converter;
 
     /**
@@ -61,7 +53,7 @@ public class AttributeSerializerWorker extends UntypedActor {
         StoreCompression compression = StoreCompression.valueOf(context().system().settings().config()
                 .getString("session.aerospike.actors.attributeserializer.compression"));
         log.info("Session attribute compression: {}", compression);
-        converter = (StoreSerializer<HashMap>) Class.forName(className)
+        converter = (StoreSerializer<Object>) Class.forName(className)
                 .getConstructor(StoreCompression.class).newInstance(compression);
     }
 
