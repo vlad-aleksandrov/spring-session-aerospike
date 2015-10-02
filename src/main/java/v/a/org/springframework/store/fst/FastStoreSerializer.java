@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.iq80.snappy.SnappyInputStream;
-import org.iq80.snappy.SnappyOutputStream;
+import org.iq80.snappy.SnappyFramedInputStream;
+import org.iq80.snappy.SnappyFramedOutputStream;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
@@ -102,7 +102,7 @@ public class FastStoreSerializer<T> implements StoreSerializer<T> {
     private OutputStream wrapOutputStream(final OutputStream os) throws IOException {
         switch (compressionType) {
             case SNAPPY:
-                return new SnappyOutputStream(os);
+                return new SnappyFramedOutputStream(os);
             default:
                 return new BufferedOutputStream(os);
         }
@@ -111,7 +111,7 @@ public class FastStoreSerializer<T> implements StoreSerializer<T> {
     private InputStream wrapInputStream(final InputStream is) throws IOException {
         switch (compressionType) {
             case SNAPPY:
-                return new SnappyInputStream(is);
+                return new SnappyFramedInputStream(is, false);
             default:
                 return new BufferedInputStream(is);
         }

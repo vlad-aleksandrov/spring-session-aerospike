@@ -30,8 +30,8 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Locale;
 
-import org.iq80.snappy.SnappyInputStream;
-import org.iq80.snappy.SnappyOutputStream;
+import org.iq80.snappy.SnappyFramedInputStream;
+import org.iq80.snappy.SnappyFramedOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -151,7 +151,7 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
     private OutputStream wrapOutputStream(final OutputStream os) throws IOException {
         switch (compressionType) {
             case SNAPPY:
-                return new SnappyOutputStream(os);
+                return new SnappyFramedOutputStream(os);
             default:
                 return new BufferedOutputStream(os);
         }
@@ -160,7 +160,7 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
     private InputStream wrapInputStream(final InputStream is) throws IOException {
         switch (compressionType) {
             case SNAPPY:
-                return new SnappyInputStream(is);
+                return new SnappyFramedInputStream(is, false);
             default:
                 return new BufferedInputStream(is);
         }
