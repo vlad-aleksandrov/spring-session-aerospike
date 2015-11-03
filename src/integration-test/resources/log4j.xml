@@ -13,7 +13,7 @@
         <level value="INFO" />
     </logger>    
 
-    <logger name="v.a">
+    <logger name="us.swcraft">
         <level value="TRACE" />
     </logger>
 
