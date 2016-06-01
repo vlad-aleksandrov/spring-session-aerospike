@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
 
 import us.swcraft.springframework.session.messages.DeleteSession;
 import us.swcraft.springframework.session.messages.SessionDeletedNotification;
-import us.swcraft.springframework.store.aerospike.AerospikeOperations;
+import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 import akka.contrib.pattern.DistributedPubSubExtension;

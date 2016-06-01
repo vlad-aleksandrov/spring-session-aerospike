@@ -25,8 +25,8 @@ import org.springframework.stereotype.Component;
 
 import us.swcraft.springframework.session.messages.SessionAttributes;
 import us.swcraft.springframework.session.messages.SessionAttributesBinary;
-import us.swcraft.springframework.store.StoreCompression;
-import us.swcraft.springframework.store.StoreSerializer;
+import us.swcraft.springframework.session.store.StoreCompression;
+import us.swcraft.springframework.session.store.StoreSerializer;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;

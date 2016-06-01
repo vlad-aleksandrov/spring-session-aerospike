@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package us.swcraft.springframework.store.kryo;
+package us.swcraft.springframework.session.store.kryo;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -36,9 +36,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import us.swcraft.springframework.session.messages.SerializedAttribute;
-import us.swcraft.springframework.store.SerializationException;
-import us.swcraft.springframework.store.StoreCompression;
-import us.swcraft.springframework.store.StoreSerializer;
+import us.swcraft.springframework.session.store.SerializationException;
+import us.swcraft.springframework.session.store.StoreCompression;
+import us.swcraft.springframework.session.store.StoreSerializer;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;

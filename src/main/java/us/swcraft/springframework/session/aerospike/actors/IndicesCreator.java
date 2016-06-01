@@ -23,7 +23,7 @@ import javax.inject.Inject;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import us.swcraft.springframework.store.aerospike.AerospikeOperations;
+import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;

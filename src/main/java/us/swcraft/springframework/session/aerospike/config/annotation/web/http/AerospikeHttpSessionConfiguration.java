@@ -38,8 +38,8 @@ import org.springframework.util.ClassUtils;
 
 import us.swcraft.springframework.session.aerospike.AerospikeStoreSessionRepository;
 import us.swcraft.springframework.session.configuration.ActorsConfiguration;
+import us.swcraft.springframework.session.store.aerospike.AerospikeTemplate;
 import us.swcraft.springframework.session.support.SpringExtension;
-import us.swcraft.springframework.store.aerospike.AerospikeTemplate;
 import akka.actor.ActorSystem;
 
 import com.aerospike.client.IAerospikeClient;

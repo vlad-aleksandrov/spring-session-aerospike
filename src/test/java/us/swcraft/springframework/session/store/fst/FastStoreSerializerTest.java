@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package us.swcraft.springframework.store.fst;
+package us.swcraft.springframework.session.store.fst;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -28,8 +28,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import us.swcraft.springframework.store.StoreCompression;
-import us.swcraft.springframework.store.fst.FastStoreSerializer;
+import us.swcraft.springframework.session.store.StoreCompression;
+import us.swcraft.springframework.session.store.fst.FastStoreSerializer;
 
 public class FastStoreSerializerTest {
 

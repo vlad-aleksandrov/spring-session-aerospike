@@ -36,7 +36,7 @@ import scala.concurrent.duration.Duration;
 import us.swcraft.springframework.session.messages.SessionAttributes;
 import us.swcraft.springframework.session.messages.SessionAttributesBinary;
 import us.swcraft.springframework.session.messages.SessionSnapshot;
-import us.swcraft.springframework.store.aerospike.AerospikeOperations;
+import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
 import akka.actor.PoisonPill;
 import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;

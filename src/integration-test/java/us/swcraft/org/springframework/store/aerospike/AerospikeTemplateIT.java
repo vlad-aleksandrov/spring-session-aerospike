@@ -38,7 +38,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import us.swcraft.springframework.session.aerospike.config.annotation.web.http.EnableAerospikeHttpSession;
-import us.swcraft.springframework.store.aerospike.AerospikeTemplate;
+import us.swcraft.springframework.session.store.aerospike.AerospikeTemplate;
 
 import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.Bin;

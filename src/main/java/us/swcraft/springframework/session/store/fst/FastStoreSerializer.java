@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package us.swcraft.springframework.store.fst;
+package us.swcraft.springframework.session.store.fst;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -31,9 +31,9 @@ import org.nustaq.serialization.FSTObjectOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import us.swcraft.springframework.store.SerializationException;
-import us.swcraft.springframework.store.StoreCompression;
-import us.swcraft.springframework.store.StoreSerializer;
+import us.swcraft.springframework.session.store.SerializationException;
+import us.swcraft.springframework.session.store.StoreCompression;
+import us.swcraft.springframework.session.store.StoreSerializer;
 
 /**
  * FST: fast java serialization drop in-replacement,
