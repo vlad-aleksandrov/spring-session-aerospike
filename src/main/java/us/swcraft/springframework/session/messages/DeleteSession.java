@@ -21,6 +21,8 @@ package us.swcraft.springframework.session.messages;
  */
 public class DeleteSession extends BaseSessionIdentity {
 
+    private static final long serialVersionUID = 1L;
+
     public DeleteSession(String id) {
         super(id);
     }

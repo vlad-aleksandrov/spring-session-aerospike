@@ -73,7 +73,7 @@ public class SessionFetcher extends UntypedActor {
         log.debug("handle message {}", message);
         if (message instanceof FetchSession) {
             log.debug("Fetch session {}", message);
-            this.sessionId = ((FetchSession)message).getId();
+            this.sessionId = ((FetchSession) message).getId();
             this.requester = getSender();
             final Record sessionRecord = fetch();
             if (sessionRecord == null) {
@@ -92,15 +92,17 @@ public class SessionFetcher extends UntypedActor {
                 if (loaded.isExpired()) {
                     notifyNotFound();
                 } else {
-                    // now extract session attributes as byte array and send it to converter for deserialization, expecting
+                    // now extract session attributes as byte array and send it to converter for deserialization,
+                    // expecting
                     // hashmap of attributes back for future processing
                     final byte[] serializedAttributes = (byte[]) sessionRecord.getValue(SESSION_ATTRIBUTES_BIN);
                     if (serializedAttributes == null) {
                         log.debug("Session {} serialized arrtubures is null", sessionId);
                         notifyNotFound();
+                    } else {
+                        getContext().actorSelection("../" + SESSION_SERIALIZER).tell(
+                                new SessionAttributesBinary(serializedAttributes), self());
                     }
-                    getContext().actorSelection("../" + SESSION_SERIALIZER).tell(
-                            new SessionAttributesBinary(serializedAttributes), self());
                 }
             }
         }
@@ -133,9 +135,9 @@ public class SessionFetcher extends UntypedActor {
         super.postStop();
     }
 
-
     /**
      * Fetches session record from Aerospike.
+     * 
      * @return
      */
     private Record fetch() {
@@ -147,7 +149,7 @@ public class SessionFetcher extends UntypedActor {
             return sessionRecord;
         }
     }
-    
+
     private void notifyNotFound() {
         requester.tell(SessionControlEvent.NOT_FOUND, getSelf());
         getSelf().tell(PoisonPill.getInstance(), getSelf());

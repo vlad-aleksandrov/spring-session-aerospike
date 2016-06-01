@@ -35,7 +35,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 /**
- * Actor handles expired sessions .
+ * Actor handles expired sessions.
  */
 @Component(EXPIRED_SESSIONS_CARETAKER)
 @Scope("prototype")
