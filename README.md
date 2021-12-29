@@ -5,7 +5,7 @@ Store session data in Aerospike.
 
 An session manager implementation that stores sessions in Aerospike for easy distribution of requests across a cluster of web servers. 
 
-Sessions are stored into Aerospike immediately upon creation for use by other servers. Sessions are loaded as requested directly from Aerospike (but subsequent requests for the session during the same request context will return a ThreadLocal cache rather than hitting Redis multiple times.) In order to prevent collisions (and lost writes) as much as possible, session data is only updated in Aerospike if the session has been modified.
+Sessions are stored into Aerospike immediately upon creation for use by other servers. Sessions are loaded as requested directly from Aerospike (but subsequent requests for the session during the same request context will return a ThreadLocal cache rather than hitting Aerospike multiple times.) In order to prevent collisions (and lost writes) as much as possible, session data is only updated in Aerospike if the session has been modified.
 
 Data stored in the session must be Serializable.
 

@@ -7,7 +7,3 @@ dependencies {
     compile "com.typesafe.akka:akka-remote_2.11:$akkaVersion"    
     compile "com.typesafe.akka:akka-contrib_2.11:$akkaVersion"
 }    
-
-tasks.withType(ScalaCompile) {
-  scalaCompileOptions.useAnt = false
-}
