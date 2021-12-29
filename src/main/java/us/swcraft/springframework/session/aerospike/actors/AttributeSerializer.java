@@ -77,7 +77,7 @@ public class AttributeSerializer extends UntypedActor {
         if (message instanceof SessionAttributes || message instanceof AttributeSerializationRequest) {
             router.route(message, getSender());
         } else if (message instanceof Terminated) {
-            // Readd workers if one failed
+            // Read workers if one failed
             router = router.removeRoutee(((Terminated) message).actor());
             ActorRef actor = getContext().actorOf(springExtension.props(SERIALIZE_ATTRIBUTE_WORKER));
             getContext().watch(actor);
