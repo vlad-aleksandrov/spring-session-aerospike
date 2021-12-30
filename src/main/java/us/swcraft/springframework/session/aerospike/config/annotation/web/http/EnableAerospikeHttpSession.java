@@ -23,13 +23,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 import com.aerospike.client.IAerospikeClient;
-import com.aerospike.client.async.IAsyncClient;
 
 /**
  * Add this annotation to an {@code @Configuration} class to expose the
  * SessionRepositoryFilter as a bean named "springSessionRepositoryFilter" and
- * backed by Aerospike. In order to leverage the annotation, a single instance of each {@link IAerospikeClient} and
- * {@link IAsyncClient} must be provided. For example:
+ * backed by Aerospike. In order to leverage the annotation, a single instance
+ * of each {@link IAerospikeClient} must be provided. For example:
  *
  * <pre>
  * {@literal @Configuration}
@@ -40,16 +39,11 @@ import com.aerospike.client.async.IAsyncClient;
  *     public AerospikeClient aerospikeClient() throws Exception {
  *         return new AerospikeClient("localhost", 3000);
  *     }
- * 
- *     {@literal @Bean(destroyMethod = "close")}
- *     public AsyncClient aerospikeAsyncClient() throws Exception {
- *         return new AsyncClient("localhost", 3000);
- *     }
- * 
  * }
  * </pre>
  *
- * More advanced configurations can extend {@link AerospikeHttpSessionConfiguration} instead.
+ * More advanced configurations can extend
+ * {@link AerospikeHttpSessionConfiguration} instead.
  *
  * @author Vlad Aleksandrov
  */
@@ -60,6 +54,8 @@ import com.aerospike.client.async.IAsyncClient;
 @Configuration
 public @interface EnableAerospikeHttpSession {
     int maxInactiveIntervalInSeconds() default 1800;
+
     String namespace() default "cache";
+
     String setname() default "httpsession";
 }

@@ -23,67 +23,60 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import us.swcraft.springframework.session.messages.DeleteSession;
-import us.swcraft.springframework.session.support.SpringExtension;
-import akka.actor.ActorRef;
-import akka.actor.Terminated;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-import akka.routing.ActorRefRoutee;
-import akka.routing.Routee;
-import akka.routing.Router;
-import akka.routing.SmallestMailboxRoutingLogic;
+
 
 /**
  * Actor handles sessions removal. The removal request is just delegated to the pool of workers who does actual removal.
  */
 @Component(SEESION_REMOVER)
 @Scope("prototype")
-public class SessionRemover extends UntypedActor {
+public class SessionRemover {
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    @Inject
-    private SpringExtension springExtension;
+//    @Inject
+//    private SpringExtension springExtension;
+//
+//    private Router router;
 
-    private Router router;
-
-    @Override
-    public void preStart() throws Exception {
-        log.debug("Starting up {}", this);
-        List<Routee> routees = new ArrayList<>();
-        
-        
-        int poolSize = context().system().settings().config().getInt("session.aerospike.actors.remover.workers");
-        // initialize multiple janitor workers
-        for (int i = 0; i < poolSize; i++) {
-            ActorRef actor = getContext().actorOf(springExtension.props(DELETE_SESSION_WORKER));
-            getContext().watch(actor);
-            routees.add(new ActorRefRoutee(actor));
-        }
-
-        router = new Router(new SmallestMailboxRoutingLogic(), routees);
-        super.preStart();
-    }
-
-    @Override
-    public void onReceive(Object message) throws Exception {
-        log.info("handle message {}", message);
-        if (message instanceof DeleteSession) {
-            router.route(message, getSender());
-        } else if (message instanceof Terminated) {
-            // Readd workers if one failed
-            router = router.removeRoutee(((Terminated) message).actor());
-            ActorRef actor = getContext().actorOf(springExtension.props(DELETE_SESSION_WORKER), DELETE_SESSION_WORKER);
-            getContext().watch(actor);
-            router = router.addRoutee(new ActorRefRoutee(actor));
-        } else {
-            log.error("Unable to handle message {}", message);
-        }
-    }
+//    @Override
+//    public void preStart() throws Exception {
+//        log.debug("Starting up {}", this);
+//        List<Routee> routees = new ArrayList<>();
+//        
+//        
+//        int poolSize = context().system().settings().config().getInt("session.aerospike.actors.remover.workers");
+//        // initialize multiple janitor workers
+//        for (int i = 0; i < poolSize; i++) {
+//            ActorRef actor = getContext().actorOf(springExtension.props(DELETE_SESSION_WORKER));
+//            getContext().watch(actor);
+//            routees.add(new ActorRefRoutee(actor));
+//        }
+//
+//        router = new Router(new SmallestMailboxRoutingLogic(), routees);
+//        super.preStart();
+//    }
+//
+//    @Override
+//    public void onReceive(Object message) throws Exception {
+//        log.info("handle message {}", message);
+//        if (message instanceof DeleteSession) {
+//            router.route(message, getSender());
+//        } else if (message instanceof Terminated) {
+//            // Readd workers if one failed
+//            router = router.removeRoutee(((Terminated) message).actor());
+//            ActorRef actor = getContext().actorOf(springExtension.props(DELETE_SESSION_WORKER), DELETE_SESSION_WORKER);
+//            getContext().watch(actor);
+//            router = router.addRoutee(new ActorRefRoutee(actor));
+//        } else {
+//            log.error("Unable to handle message {}", message);
+//        }
+//    }
 
 }

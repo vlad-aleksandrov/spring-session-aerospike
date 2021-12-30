@@ -26,21 +26,17 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.session.MapSession;
 import org.springframework.stereotype.Component;
 
-import scala.concurrent.duration.Duration;
 import us.swcraft.springframework.session.messages.FetchSession;
 import us.swcraft.springframework.session.messages.SessionAttributesBinary;
 import us.swcraft.springframework.session.messages.SessionControlEvent;
 import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
-import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
-import akka.actor.ReceiveTimeout;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
+
 
 import com.aerospike.client.Record;
 
@@ -51,9 +47,9 @@ import com.aerospike.client.Record;
  */
 @Component(SESSION_FETCHER)
 @Scope("prototype")
-public class SessionFetcher extends UntypedActor {
+public class SessionFetcher {
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Inject
     private AerospikeOperations<String> sessionAerospikeOperations;
@@ -61,79 +57,76 @@ public class SessionFetcher extends UntypedActor {
     // State data
     private String sessionId;
     private MapSession loaded;
-    private ActorRef requester;
+    //private ActorRef requester;
 
-    private SessionFetcher() {
-        // give this actor 5 sec to complete its task
-        getContext().setReceiveTimeout(Duration.create("5 seconds"));
-    }
 
-    @Override
-    public void onReceive(Object message) throws Exception {
-        log.debug("handle message {}", message);
-        if (message instanceof FetchSession) {
-            log.debug("Fetch session {}", message);
-            this.sessionId = ((FetchSession) message).getId();
-            this.requester = getSender();
-            final Record sessionRecord = fetch();
-            if (sessionRecord == null) {
-                notifyNotFound();
-            } else {
-                // reconstruct Aerospike session - extract metadata first
-                loaded = new MapSession();
-                loaded.setId(this.sessionId);
-                log.debug("Session id: {}", loaded.getId());
-                loaded.setCreationTime(sessionRecord.getLong(CREATION_TIME_BIN));
-                log.debug("Session created: {}", loaded.getCreationTime());
-                loaded.setMaxInactiveIntervalInSeconds(sessionRecord.getInt(MAX_INACTIVE_BIN));
-                log.debug("Session max inactive interval: {}", loaded.getMaxInactiveIntervalInSeconds());
-                loaded.setLastAccessedTime(sessionRecord.getLong(LAST_ACCESSED_BIN));
-                log.debug("Session last access time: {}", loaded.getLastAccessedTime());
-                if (loaded.isExpired()) {
-                    notifyNotFound();
-                } else {
-                    // now extract session attributes as byte array and send it to converter for deserialization,
-                    // expecting
-                    // hashmap of attributes back for future processing
-                    final byte[] serializedAttributes = (byte[]) sessionRecord.getValue(SESSION_ATTRIBUTES_BIN);
-                    if (serializedAttributes == null) {
-                        log.debug("Session {} serialized arrtubures is null", sessionId);
-                        notifyNotFound();
-                    } else {
-                        getContext().actorSelection("../" + SESSION_SERIALIZER).tell(
-                                new SessionAttributesBinary(serializedAttributes), self());
-                    }
-                }
-            }
-        }
-        // message from serializer: stored attributes as Map
-        else if (message instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> storedAttributes = (Map<String, Object>) message;
-            for (Map.Entry<String, Object> entry : storedAttributes.entrySet()) {
-                final String key = entry.getKey();
-                final Object value = entry.getValue();
-                loaded.setAttribute(key, value);
-            }
-            requester.tell(loaded, getSelf());
-            getSelf().tell(PoisonPill.getInstance(), getSelf());
-        }
-        else if (message instanceof ReceiveTimeout) {
-            log.error("Unable to fetch session {} in time. Aborting!", sessionId);
-            getContext().stop(getSelf());
-        }
-        else {
-            log.error("Unable to handle message {}", message);
-            unhandled(message);
-        }
 
-    }
-
-    @Override
-    public void postStop() throws Exception {
-        log.info("Shutting down {}", this);
-        super.postStop();
-    }
+//    @Override
+//    public void onReceive(Object message) throws Exception {
+//        log.debug("handle message {}", message);
+//        if (message instanceof FetchSession) {
+//            log.debug("Fetch session {}", message);
+//            this.sessionId = ((FetchSession) message).getId();
+//            this.requester = getSender();
+//            final Record sessionRecord = fetch();
+//            if (sessionRecord == null) {
+//                notifyNotFound();
+//            } else {
+//                // reconstruct Aerospike session - extract metadata first
+//                loaded = new MapSession();
+//                loaded.setId(this.sessionId);
+//                log.debug("Session id: {}", loaded.getId());
+//                loaded.setCreationTime(sessionRecord.getLong(CREATION_TIME_BIN));
+//                log.debug("Session created: {}", loaded.getCreationTime());
+//                loaded.setMaxInactiveIntervalInSeconds(sessionRecord.getInt(MAX_INACTIVE_BIN));
+//                log.debug("Session max inactive interval: {}", loaded.getMaxInactiveIntervalInSeconds());
+//                loaded.setLastAccessedTime(sessionRecord.getLong(LAST_ACCESSED_BIN));
+//                log.debug("Session last access time: {}", loaded.getLastAccessedTime());
+//                if (loaded.isExpired()) {
+//                    notifyNotFound();
+//                } else {
+//                    // now extract session attributes as byte array and send it to converter for deserialization,
+//                    // expecting
+//                    // hashmap of attributes back for future processing
+//                    final byte[] serializedAttributes = (byte[]) sessionRecord.getValue(SESSION_ATTRIBUTES_BIN);
+//                    if (serializedAttributes == null) {
+//                        log.debug("Session {} serialized arrtubures is null", sessionId);
+//                        notifyNotFound();
+//                    } else {
+//                        getContext().actorSelection("../" + SESSION_SERIALIZER).tell(
+//                                new SessionAttributesBinary(serializedAttributes), self());
+//                    }
+//                }
+//            }
+//        }
+//        // message from serializer: stored attributes as Map
+//        else if (message instanceof Map) {
+//            @SuppressWarnings("unchecked")
+//            Map<String, Object> storedAttributes = (Map<String, Object>) message;
+//            for (Map.Entry<String, Object> entry : storedAttributes.entrySet()) {
+//                final String key = entry.getKey();
+//                final Object value = entry.getValue();
+//                loaded.setAttribute(key, value);
+//            }
+//            requester.tell(loaded, getSelf());
+//            getSelf().tell(PoisonPill.getInstance(), getSelf());
+//        }
+//        else if (message instanceof ReceiveTimeout) {
+//            log.error("Unable to fetch session {} in time. Aborting!", sessionId);
+//            getContext().stop(getSelf());
+//        }
+//        else {
+//            log.error("Unable to handle message {}", message);
+//            unhandled(message);
+//        }
+//
+//    }
+//
+//    @Override
+//    public void postStop() throws Exception {
+//        log.info("Shutting down {}", this);
+//        super.postStop();
+//    }
 
     /**
      * Fetches session record from Aerospike.
@@ -150,9 +143,9 @@ public class SessionFetcher extends UntypedActor {
         }
     }
 
-    private void notifyNotFound() {
-        requester.tell(SessionControlEvent.NOT_FOUND, getSelf());
-        getSelf().tell(PoisonPill.getInstance(), getSelf());
-    }
+//    private void notifyNotFound() {
+//        requester.tell(SessionControlEvent.NOT_FOUND, getSelf());
+//        getSelf().tell(PoisonPill.getInstance(), getSelf());
+//    }
 
 }

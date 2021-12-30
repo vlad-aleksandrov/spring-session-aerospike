@@ -34,18 +34,10 @@ import org.springframework.session.events.SessionDestroyedEvent;
 import org.springframework.session.web.http.SessionRepositoryFilter;
 import org.springframework.util.Assert;
 
-import scala.concurrent.Await;
-import scala.concurrent.Future;
-import scala.concurrent.duration.Duration;
-import us.swcraft.springframework.session.support.SpringExtension;
 import us.swcraft.springframework.session.messages.FetchSession;
 import us.swcraft.springframework.session.messages.SessionControlEvent;
 import us.swcraft.springframework.session.messages.SessionSnapshot;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.PoisonPill;
-import akka.pattern.Patterns;
-import akka.util.Timeout;
+
 
 /**
  * <p>
@@ -154,10 +146,11 @@ public class AerospikeStoreSessionRepository implements
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private final ActorSystem actorSystem;
-    private final SpringExtension springExtension;
+//    private final ActorSystem actorSystem;
+//    private final SpringExtension springExtension;
 
-    private final AerospikeSessionExpirationPolicy expirationPolicy;
+    // final
+    private AerospikeSessionExpirationPolicy expirationPolicy;
 
     /**
      * If non-null, this value is used to override the default value for
@@ -169,19 +162,19 @@ public class AerospikeStoreSessionRepository implements
      * Creates a new instance.
      *
      */
-    public AerospikeStoreSessionRepository(ActorSystem actorSystem, SpringExtension springExtension) {
-        Assert.notNull(actorSystem, "actorSystem cannot be null");
-        Assert.notNull(springExtension, "springExtension cannot be null");
-        this.actorSystem = actorSystem;
-        this.springExtension = springExtension;
-        this.expirationPolicy = new AerospikeSessionExpirationPolicy(actorSystem.actorSelection("/user/"
-                + SEESION_REMOVER), actorSystem.actorSelection("/user/" + EXPIRED_SESSIONS_CARETAKER));
+    public AerospikeStoreSessionRepository() {
+//        Assert.notNull(actorSystem, "actorSystem cannot be null");
+//        Assert.notNull(springExtension, "springExtension cannot be null");
+//        this.actorSystem = actorSystem;
+//        this.springExtension = springExtension;
+//        this.expirationPolicy = new AerospikeSessionExpirationPolicy(actorSystem.actorSelection("/user/"
+//                + SEESION_REMOVER), actorSystem.actorSelection("/user/" + EXPIRED_SESSIONS_CARETAKER));
 
         // create secondary index on "expired" bin
-        ActorRef indicesCreatorRef = actorSystem.actorOf(springExtension.props(INDICES_CREATOR), INDICES_CREATOR);
-        indicesCreatorRef.tell(SessionControlEvent.CREATE_INDICES, null);
+//        ActorRef indicesCreatorRef = actorSystem.actorOf(springExtension.props(INDICES_CREATOR), INDICES_CREATOR);
+//        indicesCreatorRef.tell(SessionControlEvent.CREATE_INDICES, null);
         // since we need this actor only once, stop it right away
-        indicesCreatorRef.tell(PoisonPill.getInstance(), null);
+//        indicesCreatorRef.tell(PoisonPill.getInstance(), null);
     }
 
     /**
@@ -198,9 +191,9 @@ public class AerospikeStoreSessionRepository implements
 
     public void save(final AerospikeSession session) {
         // Create "per-request" persister actor and hand over a session snapshot to be saved
-        ActorRef persisterRef = actorSystem.actorOf(springExtension.props(SESSION_PERSISTER), SESSION_PERSISTER + "_"
-                + UUID.randomUUID());
-        persisterRef.tell(createSessionSnapshot(session), null);
+//        ActorRef persisterRef = actorSystem.actorOf(springExtension.props(SESSION_PERSISTER), SESSION_PERSISTER + "_"
+//                + UUID.randomUUID());
+//        persisterRef.tell(createSessionSnapshot(session), null);
     }
 
     @Scheduled(cron = "0 * * * * *")
@@ -210,35 +203,36 @@ public class AerospikeStoreSessionRepository implements
 
     public AerospikeSession getSession(String id) {
         // Create "per-request" fetcher actor and hand over a session id to be fetched
-        ActorRef fetcherRef = actorSystem.actorOf(springExtension.props(SESSION_FETCHER),
-                SESSION_FETCHER + "_" + UUID.randomUUID());
-                
-        Timeout timeout = new Timeout(Duration.create(actorSystem.settings().config().getInt("session.aerospike.fetch-timeout"), "seconds"));
-        Future<Object> future = Patterns.ask(fetcherRef, new FetchSession(id), timeout);
+//        ActorRef fetcherRef = actorSystem.actorOf(springExtension.props(SESSION_FETCHER),
+//                SESSION_FETCHER + "_" + UUID.randomUUID());
+//                
+//        Timeout timeout = new Timeout(Duration.create(actorSystem.settings().config().getInt("session.aerospike.fetch-timeout"), "seconds"));
+//        Future<Object> future = Patterns.ask(fetcherRef, new FetchSession(id), timeout);
 
         // this blocks current running thread
         long start = System.nanoTime();
-        try {
-            Object result = Await.result(future, timeout.duration());
-            log.debug("{}", result);
-            if (result == SessionControlEvent.NOT_FOUND) {
-                log.warn("Session {} not found", id);
-                return null;
-            } else if (result instanceof MapSession) {
-                final AerospikeSession session = new AerospikeSession((MapSession) result);
-                session.setLastAccessedTime(System.currentTimeMillis());
-                return session;
-            } else {
-                log.error("Unknown response: {}", result);
-                return null;
-            }
-        } catch (Exception e) {
-            log.error("Session {} fetch problem: {}", id, e.getMessage());
-            log.debug("", e);
-            return null;
-        } finally {
-            log.trace("Session load: {} ns", System.nanoTime() - start);
-        }
+        return null;
+//        try {
+//            Object result = Await.result(future, timeout.duration());
+//            log.debug("{}", result);
+//            if (result == SessionControlEvent.NOT_FOUND) {
+//                log.warn("Session {} not found", id);
+//                return null;
+//            } else if (result instanceof MapSession) {
+//                final AerospikeSession session = new AerospikeSession((MapSession) result);
+//                session.setLastAccessedTime(System.currentTimeMillis());
+//                return session;
+//            } else {
+//                log.error("Unknown response: {}", result);
+//                return null;
+//            }
+//        } catch (Exception e) {
+//            log.error("Session {} fetch problem: {}", id, e.getMessage());
+//            log.debug("", e);
+//            return null;
+//        } finally {
+//            log.trace("Session load: {} ns", System.nanoTime() - start);
+//        }
 
     }
 
@@ -265,7 +259,7 @@ public class AerospikeStoreSessionRepository implements
 
     public void delete(final String sessionId) {
         log.debug("Removing session '{}'", sessionId);
-        this.expirationPolicy.onDelete(sessionId);
+//        this.expirationPolicy.onDelete(sessionId);
     }
 
     public AerospikeSession createSession() {

@@ -1,5 +1,4 @@
 apply plugin: 'java'
-apply plugin: 'groovy'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'eclipse-wtp'
@@ -11,52 +10,25 @@ targetCompatibility = 1.8
 
 repositories {
     mavenCentral()
-    jcenter()
-}
-
-// Integration test setup
-configurations {
-	integrationTestCompile {
-		extendsFrom testCompile
-	}
-	integrationTestRuntime {
-		extendsFrom integrationTestCompile, testRuntime
-	}
-}
-
-subprojects {
-    tasks.withType(JavaCompile) {
-        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
-    }
 }
 
 sourceSets {
-	integrationTest {
-		java.srcDir file('src/integration-test/java')
-		groovy.srcDirs file('src/integration-test/groovy')
-		resources.srcDir file('src/integration-test/resources')
-		compileClasspath = sourceSets.main.output + sourceSets.test.output + configurations.integrationTestCompile
-		runtimeClasspath = output + compileClasspath + configurations.integrationTestRuntime
-	}
+    integration {
+        java.srcDir "$projectDir/src/integration-test/java"
+        resources.srcDir "$projectDir/src/integration-test/resources"
+        compileClasspath += main.output + test.output
+        runtimeClasspath += main.output + test.output
+    }
 }
 
-task integrationTest(type: Test, dependsOn: jar) {
-	testClassesDir = sourceSets.integrationTest.output.classesDir
-	logging.captureStandardOutput(LogLevel.INFO)
-	classpath = sourceSets.integrationTest.runtimeClasspath
-	maxParallelForks = 1
-	reports {
-		html.destination = project.file("$project.buildDir/reports/integration-tests/")
-		junitXml.destination = project.file("$project.buildDir/integration-test-results/")
-	}
+configurations {
+    integrationImplementation.extendsFrom testImplementation
+    integrationRuntime.extendsFrom testRuntime
 }
 
-eclipse {
-	classpath {
-		plusConfigurations += [ configurations.integrationTestCompile ]
-	}
+task integrationTest(type: Test) {
+    testClassesDirs = sourceSets.integration.output.classesDirs
+    classpath = sourceSets.integration.runtimeClasspath
 }
 
-project.idea.module {
-	scopes.TEST.plus += [project.configurations.integrationTestRuntime]
-}
+check.dependsOn integrationTest

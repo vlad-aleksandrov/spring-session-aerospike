@@ -20,13 +20,12 @@ import static us.swcraft.springframework.session.messages.SessionControlEvent.CR
 
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
 
 import com.aerospike.client.query.IndexType;
 
@@ -35,23 +34,23 @@ import com.aerospike.client.query.IndexType;
  */
 @Component(INDICES_CREATOR)
 @Scope("prototype")
-public class IndicesCreator extends UntypedActor {
+public class IndicesCreator {
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Inject
     private AerospikeOperations<String> aerospikeOperations;
 
-    @Override
-    public void onReceive(Object message) throws Exception {
-        log.debug("handle message {}", message);
-        if (message == CREATE_INDICES) {
-            aerospikeOperations.createIndex(PersistentSessionAerospike.EXPIRED_BIN,
-                    PersistentSessionAerospike.EXPIRED_INDEX, IndexType.NUMERIC);
-        } else {
-            unhandled(message);
-        }
-
-    }
+//    @Override
+//    public void onReceive(Object message) throws Exception {
+//        log.debug("handle message {}", message);
+//        if (message == CREATE_INDICES) {
+//            aerospikeOperations.createIndex(PersistentSessionAerospike.EXPIRED_BIN,
+//                    PersistentSessionAerospike.EXPIRED_INDEX, IndexType.NUMERIC);
+//        } else {
+//            unhandled(message);
+//        }
+//
+//    }
 
 }

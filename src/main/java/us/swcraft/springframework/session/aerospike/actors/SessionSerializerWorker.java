@@ -20,6 +20,8 @@ import static us.swcraft.springframework.session.aerospike.actors.ActorsEcoSyste
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -27,9 +29,6 @@ import us.swcraft.springframework.session.messages.SessionAttributes;
 import us.swcraft.springframework.session.messages.SessionAttributesBinary;
 import us.swcraft.springframework.session.store.StoreCompression;
 import us.swcraft.springframework.session.store.StoreSerializer;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -39,49 +38,49 @@ import com.google.common.collect.ImmutableMap;
  */
 @Component(SERIALIZE_SESSION_WORKER)
 @Scope("prototype")
-public class SessionSerializerWorker extends UntypedActor {
+public class SessionSerializerWorker  {
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @SuppressWarnings("rawtypes")
     private StoreSerializer<HashMap> converter;
     
 
     /**
-     * Configures serializer implementation and and compression type
+     * Configures serializer implementation and compression type
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    @Override
-    public void preStart() throws Exception {
-        String className = context().system().settings().config()
-                .getString("session.aerospike.actors.serializer.class");
-        log.info("Session store serializer: {}", className);
-        StoreCompression compression = StoreCompression.valueOf(context().system().settings().config()
-                .getString("session.aerospike.actors.serializer.compression"));
-        log.info("Session store compression: {}", compression);
-        converter = (StoreSerializer<HashMap>) Class.forName(className)
-                .getConstructor(StoreCompression.class).newInstance(compression);
-    }
-
-    @Override
-    public void onReceive(Object message) throws Exception {
-        log.debug("handle message {}", message);
-        if (message instanceof SessionAttributes) {
-            // serialize attributes and send result back to persister
-            SessionAttributes attributes = (SessionAttributes) message;
-            final byte[] result = converter.serialize(new HashMap<String, Object>(attributes.getAttributes()));
-            getSender().tell(new SessionAttributesBinary(result), getSelf());
-        }
-        else if (message instanceof SessionAttributesBinary) {
-            SessionAttributesBinary binaryData = (SessionAttributesBinary) message;
-            @SuppressWarnings("unchecked")
-            final Map<String, Object> attributes = converter.deserialize(binaryData.getAttributes(), HashMap.class);
-            getSender().tell(ImmutableMap.copyOf(attributes), getSelf());
-        }
-        else {
-            unhandled(message);
-        }
-
-    }
+//    @SuppressWarnings({ "unchecked", "rawtypes" })
+//    @Override
+//    public void preStart() throws Exception {
+//        String className = context().system().settings().config()
+//                .getString("session.aerospike.actors.serializer.class");
+//        log.info("Session store serializer: {}", className);
+//        StoreCompression compression = StoreCompression.valueOf(context().system().settings().config()
+//                .getString("session.aerospike.actors.serializer.compression"));
+//        log.info("Session store compression: {}", compression);
+//        converter = (StoreSerializer<HashMap>) Class.forName(className)
+//                .getConstructor(StoreCompression.class).newInstance(compression);
+//    }
+//
+//    @Override
+//    public void onReceive(Object message) throws Exception {
+//        log.debug("handle message {}", message);
+//        if (message instanceof SessionAttributes) {
+//            // serialize attributes and send result back to persister
+//            SessionAttributes attributes = (SessionAttributes) message;
+//            final byte[] result = converter.serialize(new HashMap<String, Object>(attributes.getAttributes()));
+//            getSender().tell(new SessionAttributesBinary(result), getSelf());
+//        }
+//        else if (message instanceof SessionAttributesBinary) {
+//            SessionAttributesBinary binaryData = (SessionAttributesBinary) message;
+//            @SuppressWarnings("unchecked")
+//            final Map<String, Object> attributes = converter.deserialize(binaryData.getAttributes(), HashMap.class);
+//            getSender().tell(ImmutableMap.copyOf(attributes), getSelf());
+//        }
+//        else {
+//            unhandled(message);
+//        }
+//
+//    }
 
 }

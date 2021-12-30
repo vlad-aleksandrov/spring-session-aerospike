@@ -24,12 +24,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 
-import us.swcraft.springframework.session.support.SpringExtension;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 @Configuration
 @ComponentScan(basePackages = {
@@ -41,12 +35,12 @@ public class ActorsConfiguration {
     /**
      * Actor system singleton for this application.
      */
-    @Bean(destroyMethod = "shutdown")
-    @DependsOn("springExtension")
-    public ActorSystem actorSystem() {
-        ActorSystem actorSystem = ActorSystem.create("ManageSessions", akkaConfiguration());
-        return actorSystem;
-    }
+//    @Bean(destroyMethod = "shutdown")
+//    @DependsOn("springExtension")
+//    public ActorSystem actorSystem() {
+//        ActorSystem actorSystem = ActorSystem.create("ManageSessions", akkaConfiguration());
+//        return actorSystem;
+//    }
 
     /**
      * Session remover actor reference.
@@ -54,11 +48,11 @@ public class ActorsConfiguration {
      * @param ext
      * @return
      */
-    @Bean
-    @Inject
-    public ActorRef removerRef(ActorSystem actorSystem, SpringExtension ext) {
-        return actorSystem.actorOf(ext.props(SEESION_REMOVER), SEESION_REMOVER);
-    }
+//    @Bean
+//    @Inject
+//    public ActorRef removerRef(ActorSystem actorSystem, SpringExtension ext) {
+//        return actorSystem.actorOf(ext.props(SEESION_REMOVER), SEESION_REMOVER);
+//    }
     
     /**
      * Expired sessions caretaker actor reference.
@@ -66,11 +60,11 @@ public class ActorsConfiguration {
      * @param ext
      * @return
      */
-    @Bean
-    @Inject
-    public ActorRef expiredSessionsCaretakerRef(ActorSystem actorSystem, SpringExtension ext) {
-        return actorSystem.actorOf(ext.props(EXPIRED_SESSIONS_CARETAKER), EXPIRED_SESSIONS_CARETAKER);
-    }
+//    @Bean
+//    @Inject
+//    public ActorRef expiredSessionsCaretakerRef(ActorSystem actorSystem, SpringExtension ext) {
+//        return actorSystem.actorOf(ext.props(EXPIRED_SESSIONS_CARETAKER), EXPIRED_SESSIONS_CARETAKER);
+//    }
     
     /**
      * Session deleted notifier actor reference.
@@ -78,11 +72,11 @@ public class ActorsConfiguration {
      * @param ext
      * @return
      */
-    @Bean
-    @Inject
-    public ActorRef notifierRef(ActorSystem actorSystem, SpringExtension ext) {
-        return actorSystem.actorOf(ext.props(SESSION_DELETED_NOTIFIER), SESSION_DELETED_NOTIFIER);
-    }
+//    @Bean
+//    @Inject
+//    public ActorRef notifierRef(ActorSystem actorSystem, SpringExtension ext) {
+//        return actorSystem.actorOf(ext.props(SESSION_DELETED_NOTIFIER), SESSION_DELETED_NOTIFIER);
+//    }
     
     /**
      * Session serializer actor reference.
@@ -90,11 +84,11 @@ public class ActorsConfiguration {
      * @param ext
      * @return
      */
-    @Bean
-    @Inject
-    public ActorRef serializerRef(ActorSystem actorSystem, SpringExtension ext) {
-        return actorSystem.actorOf(ext.props(SESSION_SERIALIZER), SESSION_SERIALIZER);
-    }
+//    @Bean
+//    @Inject
+//    public ActorRef serializerRef(ActorSystem actorSystem, SpringExtension ext) {
+//        return actorSystem.actorOf(ext.props(SESSION_SERIALIZER), SESSION_SERIALIZER);
+//    }
     
     /**
      * Session attribute serializer actor reference.
@@ -102,17 +96,12 @@ public class ActorsConfiguration {
      * @param ext
      * @return
      */
-    @Bean
-    @Inject
-    public ActorRef attributeSerializerRef(ActorSystem actorSystem, SpringExtension ext) {
-        return actorSystem.actorOf(ext.props(ATTRIBUTE_SERIALIZER), ATTRIBUTE_SERIALIZER);
-    }
+//    @Bean
+//    @Inject
+//    public ActorRef attributeSerializerRef(ActorSystem actorSystem, SpringExtension ext) {
+//        return actorSystem.actorOf(ext.props(ATTRIBUTE_SERIALIZER), ATTRIBUTE_SERIALIZER);
+//    }
     
 
-    /**
-     * Reads configuration from {@code classpath:/application.conf} file
-     */
-    private Config akkaConfiguration() {
-        return ConfigFactory.load();
-    }
+
 }

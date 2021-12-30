@@ -39,11 +39,8 @@ import org.springframework.util.ClassUtils;
 import us.swcraft.springframework.session.aerospike.AerospikeStoreSessionRepository;
 import us.swcraft.springframework.session.configuration.ActorsConfiguration;
 import us.swcraft.springframework.session.store.aerospike.AerospikeTemplate;
-import us.swcraft.springframework.session.support.SpringExtension;
-import akka.actor.ActorSystem;
 
 import com.aerospike.client.IAerospikeClient;
-import com.aerospike.client.async.IAsyncClient;
 
 /**
  * Exposes the {@link SessionRepositoryFilter} as a bean named
@@ -73,19 +70,11 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
 
     private HttpSessionStrategy httpSessionStrategy;
 
-    @Inject
-    private ActorSystem actorSystem;
-
-    @Inject
-    private SpringExtension springExtension;
-
     @Bean(initMethod = "init")
     @Inject
-    public AerospikeTemplate sessionAerospikeTemplate(final IAerospikeClient aerospikeClient,
-            final IAsyncClient asyncAerospikeClient) {
+    public AerospikeTemplate sessionAerospikeTemplate(final IAerospikeClient aerospikeClient) {
         final AerospikeTemplate template = new AerospikeTemplate();
         template.setAerospikeClient(aerospikeClient);
-        template.setAerospikeAsyncClient(asyncAerospikeClient);
         template.setNamespace(namespace);
         template.setSetname(setname);
         return template;
@@ -93,10 +82,11 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
 
     @Bean
     public AerospikeStoreSessionRepository sessionRepository() {
-        final AerospikeStoreSessionRepository sessionRepository = new AerospikeStoreSessionRepository(actorSystem,
-                springExtension);
-        sessionRepository.setDefaultMaxInactiveInterval(maxInactiveIntervalInSeconds);
-        return sessionRepository;
+//        final AerospikeStoreSessionRepository sessionRepository = new AerospikeStoreSessionRepository(actorSystem,
+//                springExtension);
+//        sessionRepository.setDefaultMaxInactiveInterval(maxInactiveIntervalInSeconds);
+//        return sessionRepository;
+        return null;
     }
 
     @Bean

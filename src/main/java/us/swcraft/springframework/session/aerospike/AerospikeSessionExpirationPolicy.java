@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import us.swcraft.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
 import us.swcraft.springframework.session.messages.DeleteSession;
 import us.swcraft.springframework.session.messages.SessionControlEvent;
-import akka.actor.ActorSelection;
 
 /**
  * A strategy for expiring and deleting {@link AerospikeSession} instances.
@@ -33,23 +32,23 @@ final class AerospikeSessionExpirationPolicy {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private final ActorSelection removerActor;
-    private final ActorSelection expiredSessionsCaretakerActor;
-
-    public AerospikeSessionExpirationPolicy(ActorSelection removerActor, ActorSelection expiredSessionsCaretakerActor) {
-        super();
-        this.removerActor = removerActor;
-        this.expiredSessionsCaretakerActor = expiredSessionsCaretakerActor;
-    }
-
-    public void onDelete(final String sessionId) {
-        log.debug("Session '{}' is going to be deleted.", sessionId);
-        this.removerActor.tell(new DeleteSession(sessionId), null);
-    }
-
+//    private final ActorSelection removerActor;
+//    private final ActorSelection expiredSessionsCaretakerActor;
+//
+//    public AerospikeSessionExpirationPolicy(ActorSelection removerActor, ActorSelection expiredSessionsCaretakerActor) {
+//        super();
+//        this.removerActor = removerActor;
+//        this.expiredSessionsCaretakerActor = expiredSessionsCaretakerActor;
+//    }
+//
+//    public void onDelete(final String sessionId) {
+//        log.debug("Session '{}' is going to be deleted.", sessionId);
+//        this.removerActor.tell(new DeleteSession(sessionId), null);
+//    }
+//
     public void cleanExpiredSessions() {
         log.debug("Expired sessions cleanup");
-        this.expiredSessionsCaretakerActor.tell(SessionControlEvent.CLEAR_EXPIRED_SESSIONS, null);
+//        this.expiredSessionsCaretakerActor.tell(SessionControlEvent.CLEAR_EXPIRED_SESSIONS, null);
     }
 
 }

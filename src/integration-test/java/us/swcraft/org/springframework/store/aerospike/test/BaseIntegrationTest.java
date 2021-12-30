@@ -32,9 +32,6 @@ import us.swcraft.springframework.session.aerospike.config.annotation.web.http.E
 import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.Host;
 import com.aerospike.client.IAerospikeClient;
-import com.aerospike.client.async.AsyncClient;
-import com.aerospike.client.async.AsyncClientPolicy;
-import com.aerospike.client.async.IAsyncClient;
 import com.aerospike.client.policy.ClientPolicy;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -63,14 +60,7 @@ public abstract class BaseIntegrationTest {
             return client;
         }
 
-        @Bean(destroyMethod = "close")
-        public IAsyncClient aerospikeAsyncClient() throws Exception {
-            final AsyncClientPolicy defaultAsyncClientPolicy = new AsyncClientPolicy();
-            final IAsyncClient client = new AsyncClient(defaultAsyncClientPolicy, new Host(
-                    env.getProperty("aerospike.host"),
-                    Integer.valueOf(env.getProperty("aerospike.port"))));
-            return client;
-        }
+
     }
 
 }

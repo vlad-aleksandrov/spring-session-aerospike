@@ -17,6 +17,8 @@ package us.swcraft.springframework.session.aerospike.actors;
 
 import static us.swcraft.springframework.session.aerospike.actors.ActorsEcoSystem.SERIALIZE_ATTRIBUTE_WORKER;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -25,9 +27,6 @@ import us.swcraft.springframework.session.messages.AttributeSerializationRespons
 import us.swcraft.springframework.session.store.SerializationException;
 import us.swcraft.springframework.session.store.StoreCompression;
 import us.swcraft.springframework.session.store.StoreSerializer;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
 
 /**
  * Actor handles session serialization/deserialization. The session attributes are serialized as standard
@@ -35,9 +34,9 @@ import akka.event.LoggingAdapter;
  */
 @Component(SERIALIZE_ATTRIBUTE_WORKER)
 @Scope("prototype")
-public class AttributeSerializerWorker extends UntypedActor {
+public class AttributeSerializerWorker {
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @SuppressWarnings({ "rawtypes" })
     private StoreSerializer<Object> converter;
@@ -45,38 +44,38 @@ public class AttributeSerializerWorker extends UntypedActor {
     /**
      * Configures attribute serializer implementation and compression type.
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    @Override
-    public void preStart() throws Exception {
-        String className = context().system().settings().config()
-                .getString("session.aerospike.actors.attributeserializer.class");
-        log.info("Session attribute serializer: {}", className);
-        StoreCompression compression = StoreCompression.valueOf(context().system().settings().config()
-                .getString("session.aerospike.actors.attributeserializer.compression"));
-        log.info("Session attribute compression: {}", compression);
-        converter = (StoreSerializer<Object>) Class.forName(className)
-                .getConstructor(StoreCompression.class).newInstance(compression);
-    }
-
-    @Override
-    public void onReceive(Object message) throws Exception {
-        log.debug("handle message {}", message);
-        if (message instanceof AttributeSerializationRequest) {
-            // serialize attributes and send result back to caller
-            AttributeSerializationRequest attribute = (AttributeSerializationRequest) message;
-            try {
-                final byte[] result = converter.serialize(attribute.getValue());
-                getSender().tell(new AttributeSerializationResponse(attribute.getKey(), result), getSelf());
-            } catch (SerializationException e) {
-                log.error("Unable to serialize {} attribute: {}", attribute.getKey(), e.getCause().getMessage());
-                log.debug("", e.getCause());
-                getSender().tell(new AttributeSerializationResponse(attribute.getKey(), new byte[0]), getSelf());
-            }
-        }
-        else {
-            unhandled(message);
-        }
-
-    }
+//    @SuppressWarnings({ "unchecked", "rawtypes" })
+//    @Override
+//    public void preStart() throws Exception {
+//        String className = context().system().settings().config()
+//                .getString("session.aerospike.actors.attributeserializer.class");
+//        log.info("Session attribute serializer: {}", className);
+//        StoreCompression compression = StoreCompression.valueOf(context().system().settings().config()
+//                .getString("session.aerospike.actors.attributeserializer.compression"));
+//        log.info("Session attribute compression: {}", compression);
+//        converter = (StoreSerializer<Object>) Class.forName(className)
+//                .getConstructor(StoreCompression.class).newInstance(compression);
+//    }
+//
+//    @Override
+//    public void onReceive(Object message) throws Exception {
+//        log.debug("handle message {}", message);
+//        if (message instanceof AttributeSerializationRequest) {
+//            // serialize attributes and send result back to caller
+//            AttributeSerializationRequest attribute = (AttributeSerializationRequest) message;
+//            try {
+//                final byte[] result = converter.serialize(attribute.getValue());
+//                getSender().tell(new AttributeSerializationResponse(attribute.getKey(), result), getSelf());
+//            } catch (SerializationException e) {
+//                log.error("Unable to serialize {} attribute: {}", attribute.getKey(), e.getCause().getMessage());
+//                log.debug("", e.getCause());
+//                getSender().tell(new AttributeSerializationResponse(attribute.getKey(), new byte[0]), getSelf());
+//            }
+//        }
+//        else {
+//            unhandled(message);
+//        }
+//
+//    }
 
 }

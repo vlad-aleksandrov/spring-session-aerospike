@@ -19,45 +19,42 @@ import static us.swcraft.springframework.session.aerospike.actors.ActorsEcoSyste
 
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import us.swcraft.springframework.session.messages.DeleteSession;
 import us.swcraft.springframework.session.messages.SessionDeletedNotification;
 import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
-import akka.actor.ActorRef;
-import akka.actor.UntypedActor;
-import akka.contrib.pattern.DistributedPubSubExtension;
-import akka.contrib.pattern.DistributedPubSubMediator;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
+
 
 /**
  * Actor handles an actual single session removal and broadcasting "session deleted" notification.
  */
 @Component(DELETE_SESSION_WORKER)
 @Scope("prototype")
-public class DeleteSessionWorker extends UntypedActor {
+public class DeleteSessionWorker {
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
     
-    private final ActorRef mediator = DistributedPubSubExtension.get(getContext().system()).mediator();
-    
-    @Inject
-    private AerospikeOperations<String> aerospikeOperations;
-    
-    @Override
-    public void onReceive(Object message) throws Exception {
-        log.debug("handle message {}", message);
-        if (message instanceof DeleteSession) {
-            DeleteSession deleteSessionMsg = (DeleteSession) message;
-            String sessionId = deleteSessionMsg.getId();
-            aerospikeOperations.delete(sessionId);
-            mediator.tell(new DistributedPubSubMediator.Publish("sessionDeleted", new SessionDeletedNotification(sessionId)), 
-                    getSelf());
-        } else {
-            unhandled(message);
-        }
-    }
+//    private final ActorRef mediator = DistributedPubSubExtension.get(getContext().system()).mediator();
+//    
+//    @Inject
+//    private AerospikeOperations<String> aerospikeOperations;
+//    
+//    @Override
+//    public void onReceive(Object message) throws Exception {
+//        log.debug("handle message {}", message);
+//        if (message instanceof DeleteSession) {
+//            DeleteSession deleteSessionMsg = (DeleteSession) message;
+//            String sessionId = deleteSessionMsg.getId();
+//            aerospikeOperations.delete(sessionId);
+//            mediator.tell(new DistributedPubSubMediator.Publish("sessionDeleted", new SessionDeletedNotification(sessionId)), 
+//                    getSelf());
+//        } else {
+//            unhandled(message);
+//        }
+//    }
 
 }

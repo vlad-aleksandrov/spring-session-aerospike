@@ -102,7 +102,7 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         log.trace("delete {} key", key);
         Assert.notNull(key, "key can't be null");
         final Key recordKey = new Key(namespace, setname, key);
-        getAsyncAerospikeClient().delete(deletePolicy, recordKey);
+        getAerospikeClient().delete(deletePolicy, recordKey);
     }
 
     @Override
@@ -112,7 +112,7 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         final Key recordKey = new Key(namespace, setname, key);
         Assert.notNull(binName, "bin name can't be null");
         final Bin bin = Bin.asNull(binName);
-        getAsyncAerospikeClient().put(deletePolicy, recordKey, bin);
+        getAerospikeClient().put(deletePolicy, recordKey, bin);
     }
 
     @Override
@@ -145,10 +145,10 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
      */
     @Override
     public void createIndex(final String binName, final String indexName, final IndexType indexType) {
-        Policy policy = new Policy();
-        policy.timeout = 0; // Do not timeout on index create.
+        final Policy policy = new Policy();
+        policy.totalTimeout = 0; // Do not timeout on index create.
 
-        IndexTask task = getAerospikeClient().createIndex(policy, namespace, setname, indexName, binName, indexType);
+        final IndexTask task = getAerospikeClient().createIndex(policy, namespace, setname, indexName, binName, indexType);
         task.waitTillComplete();
     }
 
@@ -162,7 +162,7 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         stmt.setNamespace(namespace);
         stmt.setSetName(setname);
         stmt.setBinNames(indexedBinName);
-        stmt.setFilters(Filter.range(indexedBinName, begin, end));
+        stmt.setFilter(Filter.range(indexedBinName, begin, end));
 
         final RecordSet rs = getAerospikeClient().query(null, stmt);
         final Set<String> result = new HashSet<>();
@@ -193,7 +193,7 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
     public void deleteAll() {
         getAerospikeClient().scanAll(new ScanPolicy(), namespace, setname, new ScanCallback() {
             public void scanCallback(Key key, Record record) throws AerospikeException {
-                getAsyncAerospikeClient().delete(writePolicy, key);
+                getAerospikeClient().delete(writePolicy, key);
             }
         }, new String[] {});
     }

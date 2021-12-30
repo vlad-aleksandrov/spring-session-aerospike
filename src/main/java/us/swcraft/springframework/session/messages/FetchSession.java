@@ -20,6 +20,8 @@ package us.swcraft.springframework.session.messages;
  *
  */
 public class FetchSession extends BaseSessionIdentity {
+    
+    private static final long serialVersionUID = 3L;
 
     public FetchSession(String id) {
         super(id);

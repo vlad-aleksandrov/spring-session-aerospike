@@ -16,18 +16,16 @@
 package us.swcraft.springframework.session.store.aerospike;
 
 import com.aerospike.client.IAerospikeClient;
-import com.aerospike.client.async.IAsyncClient;
 
 /**
- * Base class for {@link AerospikeTemplate} defining common properties. Not intended to be used directly.
+ * Base class for {@link AerospikeTemplate} defining common properties. Not
+ * intended to be used directly.
  * 
  * @author Vlad Aleksandrov
  */
 public class AerospikeAccessor {
 
     private IAerospikeClient aerospikeClient;
-
-    private IAsyncClient asyncAerospikeClient;
 
     /**
      * Returns the Aerospike client.
@@ -36,19 +34,6 @@ public class AerospikeAccessor {
      */
     public IAerospikeClient getAerospikeClient() {
         return aerospikeClient;
-    }
-
-    /**
-     * Returns the async Aerospike client.
-     * 
-     * @return async Aerospike client
-     */
-    public IAsyncClient getAsyncAerospikeClient() {
-        return asyncAerospikeClient;
-    }
-
-    public void setAerospikeAsyncClient(final IAsyncClient asyncAerospikeClient) {
-        this.asyncAerospikeClient = asyncAerospikeClient;
     }
 
     public void setAerospikeClient(final IAerospikeClient aerospikeClient) {

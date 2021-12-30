@@ -45,9 +45,6 @@ import com.aerospike.client.Bin;
 import com.aerospike.client.Host;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Record;
-import com.aerospike.client.async.AsyncClient;
-import com.aerospike.client.async.AsyncClientPolicy;
-import com.aerospike.client.async.IAsyncClient;
 import com.aerospike.client.policy.ClientPolicy;
 import com.aerospike.client.query.IndexType;
 
@@ -129,13 +126,7 @@ public class AerospikeTemplateIT {
             return client;
         }
 
-        @Bean(destroyMethod = "close")
-        public IAsyncClient aerospikeAsyncClient() throws Exception {
-            final AsyncClientPolicy defaultAsyncClientPolicy = new AsyncClientPolicy();
-            final IAsyncClient client = new AsyncClient(defaultAsyncClientPolicy, new Host(env.getProperty("aerospike.host"),
-                    Integer.valueOf(env.getProperty("aerospike.port"))));
-            return client;
-        }
+
     }
 
 }

@@ -24,42 +24,41 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import us.swcraft.springframework.session.messages.DeleteSession;
 import us.swcraft.springframework.session.messages.SessionControlEvent;
 import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
 
 /**
  * Actor handles expired sessions.
  */
 @Component(EXPIRED_SESSIONS_CARETAKER)
 @Scope("prototype")
-public class ExpiredSessionsCaretaker extends UntypedActor {
+public class ExpiredSessionsCaretaker  {
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Inject
     private AerospikeOperations<String> aerospikeOperations;
 
-    @Override
-    public void onReceive(Object message) throws Exception {
-        log.debug("handle message {}", message);
-        if (message == SessionControlEvent.CLEAR_EXPIRED_SESSIONS) {
-            Set<String> expiredSession = aerospikeOperations.fetchRange(SESSION_ID_BIN, EXPIRED_BIN, 0L,
-                    System.currentTimeMillis());
-            for (String sessionId : expiredSession) {
-                getContext().actorSelection("/user/" + SEESION_REMOVER).tell(new DeleteSession(sessionId), self());
-            }
-
-        } else {
-            log.error("Unable to handle message {}", message);
-            unhandled(message);
-        }
-    }
+//    @Override
+//    public void onReceive(Object message) throws Exception {
+//        log.debug("handle message {}", message);
+//        if (message == SessionControlEvent.CLEAR_EXPIRED_SESSIONS) {
+//            Set<String> expiredSession = aerospikeOperations.fetchRange(SESSION_ID_BIN, EXPIRED_BIN, 0L,
+//                    System.currentTimeMillis());
+//            for (String sessionId : expiredSession) {
+//                getContext().actorSelection("/user/" + SEESION_REMOVER).tell(new DeleteSession(sessionId), self());
+//            }
+//
+//        } else {
+//            log.error("Unable to handle message {}", message);
+//            unhandled(message);
+//        }
+//    }
 
 }

@@ -29,19 +29,16 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import scala.concurrent.duration.Duration;
 import us.swcraft.springframework.session.messages.SessionAttributes;
 import us.swcraft.springframework.session.messages.SessionAttributesBinary;
 import us.swcraft.springframework.session.messages.SessionSnapshot;
 import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
-import akka.actor.PoisonPill;
-import akka.actor.ReceiveTimeout;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
+
 
 import com.aerospike.client.Bin;
 
@@ -52,9 +49,9 @@ import com.aerospike.client.Bin;
  */
 @Component(SESSION_PERSISTER)
 @Scope("prototype")
-public class SessionPersister extends UntypedActor {
+public class SessionPersister {
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this.getClass().getSimpleName());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     /**
      * Internal events.
@@ -75,74 +72,74 @@ public class SessionPersister extends UntypedActor {
 
     private SessionPersister() {
         // give this actor 5 sec to complete its task
-        getContext().setReceiveTimeout(Duration.create("5 seconds"));
+//        getContext().setReceiveTimeout(Duration.create("5 seconds"));
     }
 
-    @Override
-    public void onReceive(Object message) throws Exception {
-        log.debug("handle message {}", message);
-        if (message instanceof SessionSnapshot) {
-            log.debug("Prepare session metadata to save {}", message);
-            prepareMetadata((SessionSnapshot) message);
-        }
-        else if (message instanceof SessionAttributesBinary) {
-            SessionAttributesBinary serializedAttributes = (SessionAttributesBinary) message;
-            log.debug("Got serialized session - {} bytes", serializedAttributes);
-            binsToSave.add(new Bin(SESSION_ATTRIBUTES_BIN, serializedAttributes.getAttributes()));
-            getSelf().tell(InternalEvents.SAVE, getSelf());
-        }
-        else if (message == InternalEvents.SAVE) {
-            save();
-            // mission complete - take pill and die now
-            getSelf().tell(PoisonPill.getInstance(), getSelf());
-        }
-        else if (message instanceof ReceiveTimeout) {
-            log.error("Unable to store session {} in time. Aborting!", message);
-            getContext().stop(getSelf());
-        }
-        else {
-            log.error("Unable to handle message {}", message);
-            unhandled(message);
-        }
+//    @Override
+//    public void onReceive(Object message) throws Exception {
+//        log.debug("handle message {}", message);
+//        if (message instanceof SessionSnapshot) {
+//            log.debug("Prepare session metadata to save {}", message);
+//            prepareMetadata((SessionSnapshot) message);
+//        }
+//        else if (message instanceof SessionAttributesBinary) {
+//            SessionAttributesBinary serializedAttributes = (SessionAttributesBinary) message;
+//            log.debug("Got serialized session - {} bytes", serializedAttributes);
+//            binsToSave.add(new Bin(SESSION_ATTRIBUTES_BIN, serializedAttributes.getAttributes()));
+//            getSelf().tell(InternalEvents.SAVE, getSelf());
+//        }
+//        else if (message == InternalEvents.SAVE) {
+//            save();
+//            // mission complete - take pill and die now
+//            getSelf().tell(PoisonPill.getInstance(), getSelf());
+//        }
+//        else if (message instanceof ReceiveTimeout) {
+//            log.error("Unable to store session {} in time. Aborting!", message);
+//            getContext().stop(getSelf());
+//        }
+//        else {
+//            log.error("Unable to handle message {}", message);
+//            unhandled(message);
+//        }
+//
+//    }
 
-    }
-
-    @Override
-    public void postStop() throws Exception {
-        log.debug("Shutting down {}", this);
-        super.postStop();
-    }
-
-    private void prepareMetadata(final SessionSnapshot sessionSnapshot) {
-        this.sessionId = sessionSnapshot.getSessionId();
-
-        if (!sessionAerospikeOperations.hasKey(sessionId)) {
-            log.debug("Save new session {}", sessionId);
-            // newly created session - save "created", "max inactive interval" and "id" itself
-            binsToSave.add(new Bin(CREATION_TIME_BIN, sessionSnapshot.getCreationTime()));
-            binsToSave.add(new Bin(MAX_INACTIVE_BIN, sessionSnapshot.getMaxInactiveIntervalInSec()));
-            binsToSave.add(new Bin(SESSION_ID_BIN, this.sessionId));
-        } else {
-            log.debug("Update existing session {}", sessionId);
-        }
-        // always updated last access timestamp
-        binsToSave.add(new Bin(LAST_ACCESSED_BIN, sessionSnapshot.getLastAccessedTime()));
-        if (sessionSnapshot.getMaxInactiveIntervalInSec() > 0) {
-            // update expired only for session with expiration
-            binsToSave.add(new Bin(EXPIRED_BIN, sessionSnapshot.getExpirationTimestamp()));
-        }
-        if (sessionSnapshot.isUpdated()) {
-            // find serializer and send session data for serialization, wait for SessionAttributesBinary
-            getContext().actorSelection("../" + SESSION_SERIALIZER).tell(
-                    new SessionAttributes(sessionSnapshot.getSessionAttrs()), self());
-        } else {
-            // send "save session" message to self right away
-            getSelf().tell(InternalEvents.SAVE, getSender());
-        }
-    }
-
-    private void save() {
-        sessionAerospikeOperations.persist(sessionId, binsToSave);
-    }
+//    @Override
+//    public void postStop() throws Exception {
+//        log.debug("Shutting down {}", this);
+//        super.postStop();
+//    }
+//
+//    private void prepareMetadata(final SessionSnapshot sessionSnapshot) {
+//        this.sessionId = sessionSnapshot.getSessionId();
+//
+//        if (!sessionAerospikeOperations.hasKey(sessionId)) {
+//            log.debug("Save new session {}", sessionId);
+//            // newly created session - save "created", "max inactive interval" and "id" itself
+//            binsToSave.add(new Bin(CREATION_TIME_BIN, sessionSnapshot.getCreationTime()));
+//            binsToSave.add(new Bin(MAX_INACTIVE_BIN, sessionSnapshot.getMaxInactiveIntervalInSec()));
+//            binsToSave.add(new Bin(SESSION_ID_BIN, this.sessionId));
+//        } else {
+//            log.debug("Update existing session {}", sessionId);
+//        }
+//        // always updated last access timestamp
+//        binsToSave.add(new Bin(LAST_ACCESSED_BIN, sessionSnapshot.getLastAccessedTime()));
+//        if (sessionSnapshot.getMaxInactiveIntervalInSec() > 0) {
+//            // update expired only for session with expiration
+//            binsToSave.add(new Bin(EXPIRED_BIN, sessionSnapshot.getExpirationTimestamp()));
+//        }
+//        if (sessionSnapshot.isUpdated()) {
+//            // find serializer and send session data for serialization, wait for SessionAttributesBinary
+//            getContext().actorSelection("../" + SESSION_SERIALIZER).tell(
+//                    new SessionAttributes(sessionSnapshot.getSessionAttrs()), self());
+//        } else {
+//            // send "save session" message to self right away
+//            getSelf().tell(InternalEvents.SAVE, getSender());
+//        }
+//    }
+//
+//    private void save() {
+//        sessionAerospikeOperations.persist(sessionId, binsToSave);
+//    }
 
 }

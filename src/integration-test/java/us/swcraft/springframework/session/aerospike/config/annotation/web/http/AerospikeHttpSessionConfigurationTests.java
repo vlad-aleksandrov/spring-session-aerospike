@@ -26,10 +26,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
-import us.swcraft.springframework.session.aerospike.config.annotation.web.http.EnableAerospikeHttpSession;
 
 import com.aerospike.client.IAerospikeClient;
-import com.aerospike.client.async.IAsyncClient;
 
 /**
  * @author Vlad Aleksandrov
@@ -47,15 +45,10 @@ public class AerospikeHttpSessionConfigurationTests {
     @Configuration
     static class Config {
        
-
         @Bean(destroyMethod = "close")
         public IAerospikeClient aerospikeClient() {
             return mock(IAerospikeClient.class);
         }
-        
-        @Bean(destroyMethod = "close")
-        public IAsyncClient asyncAerospikeClient() {
-            return mock(IAsyncClient.class);
-        }
+
     }
 }
