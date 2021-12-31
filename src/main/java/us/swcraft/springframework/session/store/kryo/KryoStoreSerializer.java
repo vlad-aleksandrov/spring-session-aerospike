@@ -35,15 +35,11 @@ import org.iq80.snappy.SnappyFramedOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import us.swcraft.springframework.session.messages.SerializedAttribute;
-import us.swcraft.springframework.session.store.SerializationException;
-import us.swcraft.springframework.session.store.StoreCompression;
-import us.swcraft.springframework.session.store.StoreSerializer;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers.LocaleSerializer;
+import com.esotericsoftware.kryo.util.Pool;
 
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.CollectionsEmptyListSerializer;
@@ -58,11 +54,13 @@ import de.javakaffee.kryoserializers.KryoReflectionFactorySupport;
 import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import de.javakaffee.kryoserializers.guava.ImmutableListSerializer;
+import us.swcraft.springframework.session.messages.SerializedAttribute;
+import us.swcraft.springframework.session.store.SerializationException;
+import us.swcraft.springframework.session.store.StoreCompression;
+import us.swcraft.springframework.session.store.StoreSerializer;
 
 /**
  * Kryo serializer.
- * <p/>
- * <strong>Not thread safe!</strong>
  *
  * @param <T>
  */
@@ -75,7 +73,7 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
      */
     private StoreCompression compressionType = StoreCompression.NONE;
 
-    private Kryo kryo;
+    private Pool<Kryo> kryoPool;
 
     public KryoStoreSerializer() {
         init();
@@ -87,37 +85,55 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
     }
 
     private void init() {
-        kryo = new KryoReflectionFactorySupport();
-        kryo.addDefaultSerializer(Locale.class, LocaleSerializer.class);
+        final int poolSize = 64;
+        kryoPool = new Pool<Kryo>(true, false, poolSize) {
+            protected Kryo create() {
+                Kryo kryo = new Kryo();
+                // Configure the Kryo instance.
+                kryo = new KryoReflectionFactorySupport();
+                kryo.setRegistrationRequired(false);
+                kryo.addDefaultSerializer(Locale.class, LocaleSerializer.class);
 
-        kryo.register(Arrays.asList("").getClass(), new ArraysAsListSerializer());
-        kryo.register(Collections.EMPTY_LIST.getClass(), new CollectionsEmptyListSerializer());
-        kryo.register(Collections.EMPTY_MAP.getClass(), new CollectionsEmptyMapSerializer());
-        kryo.register(Collections.EMPTY_SET.getClass(), new CollectionsEmptySetSerializer());
-        kryo.register(Collections.singletonList("").getClass(), new CollectionsSingletonListSerializer());
-        kryo.register(Collections.singleton("").getClass(), new CollectionsSingletonSetSerializer());
-        kryo.register(Collections.singletonMap("", "").getClass(), new CollectionsSingletonMapSerializer());
-        kryo.register(GregorianCalendar.class, new GregorianCalendarSerializer());
-        kryo.register(InvocationHandler.class, new JdkProxySerializer());
-        UnmodifiableCollectionsSerializer.registerSerializers(kryo);
-        SynchronizedCollectionsSerializer.registerSerializers(kryo);
+                kryo.register(Arrays.asList("").getClass(), new ArraysAsListSerializer());
+                kryo.register(Collections.EMPTY_LIST.getClass(), new CollectionsEmptyListSerializer());
+                kryo.register(Collections.EMPTY_MAP.getClass(), new CollectionsEmptyMapSerializer());
+                kryo.register(Collections.EMPTY_SET.getClass(), new CollectionsEmptySetSerializer());
+                kryo.register(Collections.singletonList("").getClass(), new CollectionsSingletonListSerializer());
+                kryo.register(Collections.singleton("").getClass(), new CollectionsSingletonSetSerializer());
+                kryo.register(Collections.singletonMap("", "").getClass(), new CollectionsSingletonMapSerializer());
+                kryo.register(GregorianCalendar.class, new GregorianCalendarSerializer());
+                kryo.register(InvocationHandler.class, new JdkProxySerializer());
+                UnmodifiableCollectionsSerializer.registerSerializers(kryo);
+                SynchronizedCollectionsSerializer.registerSerializers(kryo);
 
-        // guava ImmutableList
-        ImmutableListSerializer.registerSerializers(kryo);
+                // guava ImmutableList
+                ImmutableListSerializer.registerSerializers(kryo);
 
-        // Register our types
-        kryo.register(SerializedAttribute.class, 128);
-        kryo.register(HashMap.class, 129);
-        kryo.register(AbstractMap.SimpleImmutableEntry.class, 130);
+                // Register our types
+                kryo.register(SerializedAttribute.class, 128);
+                kryo.register(HashMap.class, 129);
+                kryo.register(AbstractMap.SimpleImmutableEntry.class, 130);
+                return kryo;
+            }
+        };
 
+        // pre-initialize Kryo objects in pool
+        final Kryo[] kryoObjs = new Kryo[poolSize];
+        for (int i = 0; i < poolSize; ++i) {
+            kryoObjs[i] = kryoPool.obtain();
+        }
+        for (int i = 0; i < poolSize; ++i) {
+            kryoPool.free(kryoObjs[i]);
+        }
     }
 
     @Override
     public byte[] serialize(final T data) throws SerializationException {
-        try (
-                final ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);
+        final Kryo kryo = kryoPool.obtain();
+        try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);
                 final OutputStream compressionOutputStream = wrapOutputStream(outputStream);
                 final Output output = new Output(compressionOutputStream);) {
+
             kryo.writeObject(output, data);
             output.flush();
             compressionOutputStream.flush();
@@ -127,14 +143,17 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
             log.error("Serialization error: {}", e.getMessage());
             log.trace("", e);
             throw new SerializationException(data.getClass() + " serialization problem", e);
+        } finally {
+            kryoPool.free(kryo);
         }
 
     }
 
     @Override
     public T deserialize(final byte[] serializedData, final Class<T> type) throws SerializationException {
-        try (
-                final ByteArrayInputStream inputStream = new ByteArrayInputStream(serializedData);
+        final Kryo kryo = kryoPool.obtain();
+
+        try (final ByteArrayInputStream inputStream = new ByteArrayInputStream(serializedData);
                 final InputStream decompressionInputStream = wrapInputStream(inputStream);
                 final Input input = new Input(decompressionInputStream);) {
 
@@ -144,8 +163,9 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
             log.error("Deserialization error: {}", e.getMessage());
             log.trace("", e);
             throw new SerializationException(type + " deserialization problem", e);
+        } finally {
+            kryoPool.free(kryo);
         }
-
     }
 
     private OutputStream wrapOutputStream(final OutputStream os) throws IOException {

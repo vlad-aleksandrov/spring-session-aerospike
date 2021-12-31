@@ -41,13 +41,15 @@ import com.aerospike.client.task.IndexTask;
 /**
  * Helper class that simplifies Aerospike data access code.
  * <p/>
- * Performs automatic serialization/deserialization between the given objects and the underlying binary data in the
- * Aerospike store. It uses Kryo serialization with Snappy compression for objects
+ * Performs automatic serialization/deserialization between the given objects
+ * and the underlying binary data in the Aerospike store. It uses Kryo
+ * serialization with Snappy compression for objects
  * <p/>
  * Once configured, this class is thread-safe.
  * <p/>
- * Note that while the template is generified, it is up to the serializers/deserializers to properly convert the given
- * Objects to and from binary data.
+ * Note that while the template is generified, it is up to the
+ * serializers/deserializers to properly convert the given Objects to and from
+ * binary data.
  * <p/>
  * <b>This is the central class in Aerospike support</b>.
  * 
@@ -121,7 +123,11 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         Assert.notNull(key, "key can't be null");
         final Key recordKey = new Key(namespace, setname, key);
         Assert.notNull(bin, "bin can't be null");
-        getAerospikeClient().put(writePolicy, recordKey, bin);
+        try {
+            getAerospikeClient().put(writePolicy, recordKey, bin);
+        } catch (AerospikeException e) {
+            log.error("write fails", e);
+        }
     }
 
     @Override
@@ -130,7 +136,11 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         final Key recordKey = new Key(namespace, setname, key);
         Assert.notNull(bins, "bins can't be null");
         Assert.notEmpty(bins, "bins should have data to store");
-        getAerospikeClient().put(writePolicy, recordKey, bins.toArray(BIN_ARRAY_TYPE));
+        try {
+            getAerospikeClient().put(writePolicy, recordKey, bins.toArray(BIN_ARRAY_TYPE));
+        } catch (AerospikeException e) {
+            log.error("write fails", e);
+        }
     }
 
     @Override
@@ -148,8 +158,18 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         final Policy policy = new Policy();
         policy.totalTimeout = 0; // Do not timeout on index create.
 
-        final IndexTask task = getAerospikeClient().createIndex(policy, namespace, setname, indexName, binName, indexType);
-        task.waitTillComplete();
+        try {
+            final IndexTask task = getAerospikeClient().createIndex(policy, namespace, setname, indexName, binName,
+                    indexType);
+            task.waitTillComplete();
+        } catch (AerospikeException e) {
+            if (e.getResultCode() == 200) {
+                log.trace("Index {} already exists");
+            } else {
+                throw new RuntimeException(e);
+            }
+        }
+
     }
 
     /**

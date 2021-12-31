@@ -41,7 +41,7 @@ public class AerospikeHttpSessionConfigurationTests {
     public void when_contextLoaded_then_noErrors() {
     }
 
-    @EnableAerospikeHttpSession(maxInactiveIntervalInSeconds = 600, namespace = "mockcache", setname = "mockhttpsession")
+    @EnableAerospikeHttpSession(maxInactiveIntervalInSeconds = 600, namespace = "cache", setname = "httpsessionIT")
     @Configuration
     static class Config {
        

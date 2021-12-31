@@ -23,8 +23,8 @@ import javax.servlet.ServletContext;
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ImportAware;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -36,28 +36,36 @@ import org.springframework.session.web.http.HttpSessionStrategy;
 import org.springframework.session.web.http.SessionRepositoryFilter;
 import org.springframework.util.ClassUtils;
 
-import us.swcraft.springframework.session.aerospike.AerospikeStoreSessionRepository;
-import us.swcraft.springframework.session.configuration.ActorsConfiguration;
-import us.swcraft.springframework.session.store.aerospike.AerospikeTemplate;
-
 import com.aerospike.client.IAerospikeClient;
+
+import us.swcraft.springframework.session.configuration.StoreMetadata;
+import us.swcraft.springframework.session.store.StoreCompression;
+import us.swcraft.springframework.session.store.StoreSerializationType;
+import us.swcraft.springframework.session.store.StoreSerializer;
+import us.swcraft.springframework.session.store.aerospike.AerospikeTemplate;
+import us.swcraft.springframework.session.store.fst.FastStoreSerializer;
+import us.swcraft.springframework.session.store.kryo.KryoStoreSerializer;
 
 /**
  * Exposes the {@link SessionRepositoryFilter} as a bean named
- * "springSessionRepositoryFilter". In order to use this a single instance of each {@link IAerospikeClient} and
- * {@link IAsyncClient} must be exposed as a Bean.
+ * "springSessionRepositoryFilter". In order to use this a single instance of
+ * each {@link IAerospikeClient} and {@link IAsyncClient} must be exposed as a
+ * Bean.
  *
  * @author Vlad Aleksandrov
  *
  * @see EnableAerospikeHttpSession
  */
 @Configuration
-@Import(ActorsConfiguration.class)
 @EnableScheduling
+@ComponentScan("us.swcraft.springframework.session.aerospike")
 public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClassLoaderAware {
 
     private ClassLoader beanClassLoader;
 
+    /**
+     * Default max inactivity interval.
+     */
     private Integer maxInactiveIntervalInSeconds = 1800;
     /**
      * Default Aerospike namespace is <code>cache</code>.
@@ -67,6 +75,16 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
      * Default Aerospike logical set name is <code>httpsession</code>.
      */
     private String setname = "httpsession";
+
+    /**
+     * Store serialization type.
+     */
+    private StoreSerializationType serializationType = StoreSerializationType.FST;
+
+    /**
+     * Store compression type.
+     */
+    private StoreCompression compression = StoreCompression.NONE;
 
     private HttpSessionStrategy httpSessionStrategy;
 
@@ -81,18 +99,59 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     }
 
     @Bean
-    public AerospikeStoreSessionRepository sessionRepository() {
-//        final AerospikeStoreSessionRepository sessionRepository = new AerospikeStoreSessionRepository(actorSystem,
-//                springExtension);
-//        sessionRepository.setDefaultMaxInactiveInterval(maxInactiveIntervalInSeconds);
-//        return sessionRepository;
-        return null;
+    public StoreMetadata storeMetadata() {
+        final StoreMetadata storeMetadata = new StoreMetadata();
+        storeMetadata.setMaxInactiveIntervalInSeconds(this.maxInactiveIntervalInSeconds);
+        storeMetadata.setNamespace(this.namespace);
+        storeMetadata.setSetname(this.setname);
+        storeMetadata.setSerializationType(serializationType);
+        storeMetadata.setCompression(compression);
+        return storeMetadata;
+    }
+
+    // @Bean
+    // public AerospikeStoreSessionRepository sessionRepository() {
+    // final AerospikeStoreSessionRepository sessionRepository = new
+    // AerospikeStoreSessionRepository();
+    // //sessionRepository.setDefaultMaxInactiveInterval(maxInactiveIntervalInSeconds);
+    // return sessionRepository;
+    // }
+
+    /**
+     * Session data serializer/deserializer.
+     * 
+     * @return
+     */
+    @Bean
+    public StoreSerializer<Map<String, Object>> storeSerializer() {
+
+        if (serializationType == StoreSerializationType.FST) {
+            switch (compression) {
+                case NONE:
+                    return new FastStoreSerializer<Map<String, Object>>();
+                case SNAPPY:
+                    return new FastStoreSerializer<Map<String, Object>>(StoreCompression.SNAPPY);
+                default:
+                    throw new RuntimeException("Unsupported compression " + compression);
+            }
+        }
+        if (serializationType == StoreSerializationType.KRYO) {
+            switch (compression) {
+                case NONE:
+                    return new KryoStoreSerializer<Map<String, Object>>();
+                case SNAPPY:
+                    return new KryoStoreSerializer<Map<String, Object>>(StoreCompression.SNAPPY);
+                default:
+                    throw new RuntimeException("Unsupported compression " + compression);
+            }
+        }
+        throw new RuntimeException("Unsupported serializer " + serializationType);
     }
 
     @Bean
     public <S extends ExpiringSession> SessionRepositoryFilter<? extends ExpiringSession> springSessionRepositoryFilter(
             SessionRepository<S> sessionRepository, ServletContext servletContext) {
-        SessionRepositoryFilter<S> sessionRepositoryFilter = new SessionRepositoryFilter<S>(sessionRepository);
+        final SessionRepositoryFilter<S> sessionRepositoryFilter = new SessionRepositoryFilter<S>(sessionRepository);
         sessionRepositoryFilter.setServletContext(servletContext);
         if (httpSessionStrategy != null) {
             sessionRepositoryFilter.setHttpSessionStrategy(httpSessionStrategy);
@@ -105,8 +164,8 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     }
 
     public void setImportMetadata(AnnotationMetadata importMetadata) {
-        Map<String, Object> enableAttrMap = importMetadata.getAnnotationAttributes(EnableAerospikeHttpSession.class
-                .getName());
+        Map<String, Object> enableAttrMap = importMetadata
+                .getAnnotationAttributes(EnableAerospikeHttpSession.class.getName());
         AnnotationAttributes enableAttrs = AnnotationAttributes.fromMap(enableAttrMap);
         if (enableAttrs == null) {
             // search parent classes
@@ -118,14 +177,15 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
                 if (enableWebSecurityAnnotation == null) {
                     continue;
                 }
-                enableAttrMap = AnnotationUtils
-                        .getAnnotationAttributes(enableWebSecurityAnnotation);
+                enableAttrMap = AnnotationUtils.getAnnotationAttributes(enableWebSecurityAnnotation);
                 enableAttrs = AnnotationAttributes.fromMap(enableAttrMap);
             }
         }
         maxInactiveIntervalInSeconds = enableAttrs.getNumber("maxInactiveIntervalInSeconds");
         namespace = enableAttrs.getString("namespace");
         setname = enableAttrs.getString("setname");
+        serializationType = enableAttrs.getEnum("serializationType");
+        compression = enableAttrs.getEnum("compression");
     }
 
     @Autowired(required = false)
@@ -136,7 +196,9 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     /*
      * (non-Javadoc)
      * 
-     * @see org.springframework.beans.factory.BeanClassLoaderAware#setBeanClassLoader(java.lang.ClassLoader)
+     * @see
+     * org.springframework.beans.factory.BeanClassLoaderAware#setBeanClassLoader
+     * (java.lang.ClassLoader)
      */
     public void setBeanClassLoader(ClassLoader classLoader) {
         this.beanClassLoader = classLoader;

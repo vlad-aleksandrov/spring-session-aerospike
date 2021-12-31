@@ -31,6 +31,8 @@ import org.nustaq.serialization.FSTObjectOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.esotericsoftware.kryo.util.Pool;
+
 import us.swcraft.springframework.session.store.SerializationException;
 import us.swcraft.springframework.session.store.StoreCompression;
 import us.swcraft.springframework.session.store.StoreSerializer;
@@ -41,31 +43,47 @@ import us.swcraft.springframework.session.store.StoreSerializer;
  * @param <T>
  */
 public class FastStoreSerializer<T> implements StoreSerializer<T> {
-    
-    private final Logger log = LoggerFactory.getLogger(this.getClass());    
+
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     /**
      * Compression type. Default is {@link StoreCompression.NONE}.
      */
     private StoreCompression compressionType = StoreCompression.NONE;
-    
-    private FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
 
+    private Pool<FSTConfiguration> fstConfPool;
 
     public FastStoreSerializer() {
-
+        init();
     }
 
     public FastStoreSerializer(final StoreCompression compressionType) {
         this.compressionType = compressionType;
+        init();
     }
-    
 
+    private void init() {
+        final int poolSize = 64;
+        fstConfPool = new Pool<FSTConfiguration>(true, false, poolSize) {
+            protected FSTConfiguration create() {
+                FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+                return conf;
+            }
+        };
+        // pre-initialize FSTConfiguration objects in pool
+        final FSTConfiguration[] confObj = new FSTConfiguration[poolSize];
+        for (int i = 0; i < poolSize; ++i) {
+            confObj[i] = fstConfPool.obtain();
+        }
+        for (int i = 0; i < poolSize; ++i) {
+            fstConfPool.free(confObj[i]);
+        }
+    }
 
     @Override
     public byte[] serialize(final T data) throws SerializationException {
-        try (
-                final ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);
+        final FSTConfiguration conf = fstConfPool.obtain();
+        try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);
                 final OutputStream compressionOutputStream = wrapOutputStream(outputStream);
                 final FSTObjectOutput output = new FSTObjectOutput(compressionOutputStream, conf);) {
             output.writeObject(data);
@@ -77,26 +95,29 @@ public class FastStoreSerializer<T> implements StoreSerializer<T> {
             log.error("Serialization error: {}", e.getMessage());
             log.trace("", e);
             throw new SerializationException(data.getClass() + " serialization problem", e);
+        } finally {
+            fstConfPool.free(conf);
         }
 
     }
 
     @Override
     public T deserialize(final byte[] serializedData, final Class<T> type) throws SerializationException {
-        try (
-                final ByteArrayInputStream inputStream = new ByteArrayInputStream(serializedData);
+        final FSTConfiguration conf = fstConfPool.obtain();
+        try (final ByteArrayInputStream inputStream = new ByteArrayInputStream(serializedData);
                 final InputStream decompressionInputStream = wrapInputStream(inputStream);
                 final FSTObjectInput input = new FSTObjectInput(decompressionInputStream, conf);) {
 
             @SuppressWarnings("unchecked")
-            final T result = (T)input.readObject();
+            final T result = (T) input.readObject();
             return result;
         } catch (Exception e) {
             log.error("Deserialization error: {}", e.getMessage());
             log.trace("", e);
             throw new SerializationException(type + " deserialization problem", e);
+        } finally {
+            fstConfPool.free(conf);
         }
-
     }
 
     private OutputStream wrapOutputStream(final OutputStream os) throws IOException {

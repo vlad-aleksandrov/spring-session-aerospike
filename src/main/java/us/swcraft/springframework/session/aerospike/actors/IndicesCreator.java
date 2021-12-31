@@ -16,24 +16,22 @@
 package us.swcraft.springframework.session.aerospike.actors;
 
 import static us.swcraft.springframework.session.aerospike.actors.ActorsEcoSystem.INDICES_CREATOR;
-import static us.swcraft.springframework.session.messages.SessionControlEvent.CREATE_INDICES;
 
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-
-import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
 
 import com.aerospike.client.query.IndexType;
 
+import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
+
 /**
- * Actor handles indices creation. Currently only one secondary index on session expiration timestamp is created.
+ * Actor handles indices creation. Currently only one secondary index on session
+ * expiration timestamp is created.
  */
-@Component(INDICES_CREATOR)
-@Scope("prototype")
+//@Component(INDICES_CREATOR)
 public class IndicesCreator {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
@@ -41,16 +39,10 @@ public class IndicesCreator {
     @Inject
     private AerospikeOperations<String> aerospikeOperations;
 
-//    @Override
-//    public void onReceive(Object message) throws Exception {
-//        log.debug("handle message {}", message);
-//        if (message == CREATE_INDICES) {
-//            aerospikeOperations.createIndex(PersistentSessionAerospike.EXPIRED_BIN,
-//                    PersistentSessionAerospike.EXPIRED_INDEX, IndexType.NUMERIC);
-//        } else {
-//            unhandled(message);
-//        }
-//
-//    }
+    public void prepare() {
+        log.trace("Prepare session store...");
+        aerospikeOperations.createIndex(PersistentSessionAerospike.EXPIRED_BIN,
+                PersistentSessionAerospike.EXPIRED_INDEX, IndexType.NUMERIC);
+    }
 
 }

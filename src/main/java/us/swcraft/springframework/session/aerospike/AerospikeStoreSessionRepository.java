@@ -16,11 +16,14 @@
 
 package us.swcraft.springframework.session.aerospike;
 
-import static us.swcraft.springframework.session.aerospike.actors.ActorsEcoSystem.*;
-
+import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.*;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,21 +32,26 @@ import org.springframework.session.ExpiringSession;
 import org.springframework.session.MapSession;
 import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
-import org.springframework.session.data.redis.SessionMessageListener;
 import org.springframework.session.events.SessionDestroyedEvent;
 import org.springframework.session.web.http.SessionRepositoryFilter;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
-import us.swcraft.springframework.session.messages.FetchSession;
-import us.swcraft.springframework.session.messages.SessionControlEvent;
-import us.swcraft.springframework.session.messages.SessionSnapshot;
+import com.aerospike.client.Bin;
+import com.aerospike.client.query.IndexType;
 
+import us.swcraft.springframework.session.configuration.StoreMetadata;
+import us.swcraft.springframework.session.messages.SessionSnapshot;
+import us.swcraft.springframework.session.store.StoreSerializer;
+import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
 
 /**
  * <p>
- * A {@link org.springframework.session.SessionRepository} that is implemented using Aerospike storage. In a web
- * environment, this is typically used in combination with {@link SessionRepositoryFilter}. This implementation supports
- * {@link SessionDestroyedEvent} through {@link SessionMessageListener}.
+ * A {@link org.springframework.session.SessionRepository} that is implemented
+ * using Aerospike storage. In a web environment, this is typically used in
+ * combination with {@link SessionRepositoryFilter}. This implementation
+ * supports {@link SessionDestroyedEvent} through
+ * {@link SessionMessageListener}.
  * </p>
  *
  * <h2>Creating a new instance</h2>
@@ -53,21 +61,23 @@ import us.swcraft.springframework.session.messages.SessionSnapshot;
  * <pre>
  * JedisConnectionFactory factory = new JedisConnectionFactory();
  * 
- * RedisOperationsSessionRepository redisSessionRepository = new RedisOperationsSessionRepository(
- *         factory);
+ * RedisOperationsSessionRepository redisSessionRepository = new RedisOperationsSessionRepository(factory);
  * </pre>
  *
  * <p>
- * For additional information on how to create a RedisTemplate, refer to the <a href =
- * "http://docs.spring.io/spring-data/data-redis/docs/current/reference/html/" >Spring Data Redis Reference</a>.
+ * For additional information on how to create a RedisTemplate, refer to the
+ * <a href =
+ * "http://docs.spring.io/spring-data/data-redis/docs/current/reference/html/"
+ * >Spring Data Redis Reference</a>.
  * </p>
  *
  * <h2>Storage Details</h2>
  *
  * <p>
- * Each session is stored in Redis as a <a href="http://redis.io/topics/data-types#hashes">Hash</a>. Each session is set
- * and updated using the <a href="http://redis.io/commands/hmset">HMSET command</a>. An example of how each session is
- * stored can be seen below.
+ * Each session is stored in Redis as a
+ * <a href="http://redis.io/topics/data-types#hashes">Hash</a>. Each session is
+ * set and updated using the <a href="http://redis.io/commands/hmset">HMSET
+ * command</a>. An example of how each session is stored can be seen below.
  * </p>
  *
  * <pre>
@@ -75,8 +85,8 @@ import us.swcraft.springframework.session.messages.SessionSnapshot;
  * </pre>
  *
  * <p>
- * An expiration is associated to each session using the <a href="http://redis.io/commands/expire">EXPIRE command</a>
- * based upon the
+ * An expiration is associated to each session using the
+ * <a href="http://redis.io/commands/expire">EXPIRE command</a> based upon the
  * {@link org.springframework.session.data.redis.RedisOperationsSessionRepository.RedisSession#getMaxInactiveIntervalInSeconds()}
  * . For example:
  * </p>
@@ -86,9 +96,11 @@ import us.swcraft.springframework.session.messages.SessionSnapshot;
  * </pre>
  *
  * <p>
- * The {@link AerospikeSession} keeps track of the properties that have changed and only updates those. This means if an
- * attribute is written once and read many times we only need to write that attribute once. For example, assume the
- * session attribute "sessionAttr2" from earlier was updated. The following would be executed upon saving:
+ * The {@link AerospikeSession} keeps track of the properties that have changed
+ * and only updates those. This means if an attribute is written once and read
+ * many times we only need to write that attribute once. For example, assume the
+ * session attribute "sessionAttr2" from earlier was updated. The following
+ * would be executed upon saving:
  * </p>
  *
  * <pre>
@@ -97,30 +109,36 @@ import us.swcraft.springframework.session.messages.SessionSnapshot;
  * </pre>
  *
  * <p>
- * Spring Session relies on the expired and delete <a href="http://redis.io/topics/notifications">keyspace
- * notifications</a> from Redis to fire a &lt;&lt;SessionDestroyedEvent&gt;&gt;. It is the `SessionDestroyedEvent` that
- * ensures resources associated with the Session are cleaned up. For example, when using Spring Session's WebSocket
- * support the Redis expired or delete event is what triggers any WebSocket connections associated with the session to
- * be closed.
+ * Spring Session relies on the expired and delete
+ * <a href="http://redis.io/topics/notifications">keyspace notifications</a>
+ * from Redis to fire a &lt;&lt;SessionDestroyedEvent&gt;&gt;. It is the
+ * `SessionDestroyedEvent` that ensures resources associated with the Session
+ * are cleaned up. For example, when using Spring Session's WebSocket support
+ * the Redis expired or delete event is what triggers any WebSocket connections
+ * associated with the session to be closed.
  * </p>
  *
  * <p>
- * One problem with this approach is that Redis makes no guarantee of when the expired event will be fired if they key
- * has not been accessed. Specifically the background task that Redis uses to clean up expired keys is a low priority
- * task and may not trigger the key expiration. For additional details see <a
- * href="http://redis.io/topics/notifications">Timing of expired events</a> section in the Redis documentation.
+ * One problem with this approach is that Redis makes no guarantee of when the
+ * expired event will be fired if they key has not been accessed. Specifically
+ * the background task that Redis uses to clean up expired keys is a low
+ * priority task and may not trigger the key expiration. For additional details
+ * see <a href="http://redis.io/topics/notifications">Timing of expired
+ * events</a> section in the Redis documentation.
  * </p>
  *
  * <p>
- * To circumvent the fact that expired events are not guaranteed to happen we can ensure that each key is accessed when
- * it is expected to expire. This means that if the TTL is expired on the key, Redis will remove the key and fire the
- * expired event when we try to access they key.
+ * To circumvent the fact that expired events are not guaranteed to happen we
+ * can ensure that each key is accessed when it is expected to expire. This
+ * means that if the TTL is expired on the key, Redis will remove the key and
+ * fire the expired event when we try to access they key.
  * </p>
  *
  * <p>
- * For this reason, each session expiration is also tracked to the nearest minute. This allows a background task to
- * access the potentially expired sessions to ensure that Redis expired events are fired in a more deterministic
- * fashion. For example:
+ * For this reason, each session expiration is also tracked to the nearest
+ * minute. This allows a background task to access the potentially expired
+ * sessions to ensure that Redis expired events are fired in a more
+ * deterministic fashion. For example:
  * </p>
  *
  * <pre>
@@ -129,71 +147,89 @@ import us.swcraft.springframework.session.messages.SessionSnapshot;
  * </pre>
  *
  * <p>
- * The background task will then use these mappings to explicitly request each key. By accessing they key, rather than
- * deleting it, we ensure that Redis deletes the key for us only if the TTL is expired.
+ * The background task will then use these mappings to explicitly request each
+ * key. By accessing they key, rather than deleting it, we ensure that Redis
+ * deletes the key for us only if the TTL is expired.
  * </p>
  * <p>
- * <b>NOTE</b>: We do not explicitly delete the keys since in some instances there may be a race condition that
- * incorrectly identifies a key as expired when it is not. Short of using distributed locks (which would kill our
- * performance) there is no way to ensure the consistency of the expiration mapping. By simply accessing the key, we
- * ensure that the key is only removed if the TTL on that key is expired.
+ * <b>NOTE</b>: We do not explicitly delete the keys since in some instances
+ * there may be a race condition that incorrectly identifies a key as expired
+ * when it is not. Short of using distributed locks (which would kill our
+ * performance) there is no way to ensure the consistency of the expiration
+ * mapping. By simply accessing the key, we ensure that the key is only removed
+ * if the TTL on that key is expired.
  * </p>
  *
  * @author Vlad Aleksandrov
  */
-public class AerospikeStoreSessionRepository implements
-        SessionRepository<AerospikeStoreSessionRepository.AerospikeSession> {
+@Component("aerospikeStoreSessionRepository")
+public class AerospikeStoreSessionRepository
+        implements SessionRepository<AerospikeStoreSessionRepository.AerospikeSession> {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-//    private final ActorSystem actorSystem;
-//    private final SpringExtension springExtension;
+    @Inject
+    private StoreMetadata storeMetadata;
 
-    // final
+    @Inject
+    private AerospikeOperations<String> aerospikeOperations;
+
+    @Inject
     private AerospikeSessionExpirationPolicy expirationPolicy;
 
-    /**
-     * If non-null, this value is used to override the default value for
-     * {@link AerospikeSession#setMaxInactiveIntervalInSeconds(int)}.
-     */
-    private Integer defaultMaxInactiveInterval;
+    @Inject
+    private StoreSerializer<Map<String, Object>> serializer;
 
     /**
-     * Creates a new instance.
-     *
+     * Storage initialization.
      */
-    public AerospikeStoreSessionRepository() {
-//        Assert.notNull(actorSystem, "actorSystem cannot be null");
-//        Assert.notNull(springExtension, "springExtension cannot be null");
-//        this.actorSystem = actorSystem;
-//        this.springExtension = springExtension;
-//        this.expirationPolicy = new AerospikeSessionExpirationPolicy(actorSystem.actorSelection("/user/"
-//                + SEESION_REMOVER), actorSystem.actorSelection("/user/" + EXPIRED_SESSIONS_CARETAKER));
-
-        // create secondary index on "expired" bin
-//        ActorRef indicesCreatorRef = actorSystem.actorOf(springExtension.props(INDICES_CREATOR), INDICES_CREATOR);
-//        indicesCreatorRef.tell(SessionControlEvent.CREATE_INDICES, null);
-        // since we need this actor only once, stop it right away
-//        indicesCreatorRef.tell(PoisonPill.getInstance(), null);
-    }
-
-    /**
-     * Sets the maximum inactive interval in seconds between requests before newly created sessions will be
-     * invalidated. A negative time indicates that the session will never timeout. The default is 1800 (30 minutes).
-     *
-     * @param defaultMaxInactiveInterval
-     *            the number of seconds that the {@link Session} should be kept alive between
-     *            client requests.
-     */
-    public void setDefaultMaxInactiveInterval(int defaultMaxInactiveInterval) {
-        this.defaultMaxInactiveInterval = defaultMaxInactiveInterval;
+    @PostConstruct
+    public void init() {
+        log.trace("Prepare session store...");
+        // create index on "expired" bin
+        aerospikeOperations.createIndex(EXPIRED_BIN, EXPIRED_INDEX, IndexType.NUMERIC);
     }
 
     public void save(final AerospikeSession session) {
-        // Create "per-request" persister actor and hand over a session snapshot to be saved
-//        ActorRef persisterRef = actorSystem.actorOf(springExtension.props(SESSION_PERSISTER), SESSION_PERSISTER + "_"
-//                + UUID.randomUUID());
-//        persisterRef.tell(createSessionSnapshot(session), null);
+        // Create "per-request" persister actor and hand over a session snapshot
+        // to be saved
+        // ActorRef persisterRef =
+        // actorSystem.actorOf(springExtension.props(SESSION_PERSISTER),
+        // SESSION_PERSISTER + "_"
+        // + UUID.randomUUID());
+        // persisterRef.tell(createSessionSnapshot(session), null);
+
+        final SessionSnapshot sessionSnapshot = createSessionSnapshot(session);
+        log.debug("Prepare and save {}", sessionSnapshot);
+        prepareAndSave(sessionSnapshot);
+    }
+
+    private void prepareAndSave(final SessionSnapshot sessionSnapshot) {
+        final String sessionId = sessionSnapshot.getSessionId();
+        final Set<Bin> binsToSave = new HashSet<>();
+
+        if (!aerospikeOperations.hasKey(sessionId)) {
+            log.trace("Save new session {}", sessionId);
+            // newly created session - save "created", "max inactive interval"
+            // and "id" itself
+            binsToSave.add(new Bin(CREATION_TIME_BIN, sessionSnapshot.getCreationTime()));
+            binsToSave.add(new Bin(MAX_INACTIVE_BIN, sessionSnapshot.getMaxInactiveIntervalInSec()));
+            binsToSave.add(new Bin(SESSION_ID_BIN, sessionId));
+        } else {
+            log.trace("Update existing session {}", sessionId);
+        }
+        // always update last access timestamp
+        binsToSave.add(new Bin(LAST_ACCESSED_BIN, sessionSnapshot.getLastAccessedTime()));
+        if (sessionSnapshot.getMaxInactiveIntervalInSec() > 0) {
+            // update expired only for session with expiration
+            binsToSave.add(new Bin(EXPIRED_BIN, sessionSnapshot.getExpirationTimestamp()));
+        }
+        if (sessionSnapshot.isUpdated()) {
+            final byte[] attrs = serializer.serialize(sessionSnapshot.getSessionAttrs());
+            log.trace("Session {} attributes: {} bytes", sessionId, attrs.length);
+            binsToSave.add(new Bin(SESSION_ATTRIBUTES_BIN, attrs));
+        }
+        aerospikeOperations.persist(sessionId, binsToSave);
     }
 
     @Scheduled(cron = "0 * * * * *")
@@ -202,42 +238,48 @@ public class AerospikeStoreSessionRepository implements
     }
 
     public AerospikeSession getSession(String id) {
-        // Create "per-request" fetcher actor and hand over a session id to be fetched
-//        ActorRef fetcherRef = actorSystem.actorOf(springExtension.props(SESSION_FETCHER),
-//                SESSION_FETCHER + "_" + UUID.randomUUID());
-//                
-//        Timeout timeout = new Timeout(Duration.create(actorSystem.settings().config().getInt("session.aerospike.fetch-timeout"), "seconds"));
-//        Future<Object> future = Patterns.ask(fetcherRef, new FetchSession(id), timeout);
+        // Create "per-request" fetcher actor and hand over a session id to be
+        // fetched
+        // ActorRef fetcherRef =
+        // actorSystem.actorOf(springExtension.props(SESSION_FETCHER),
+        // SESSION_FETCHER + "_" + UUID.randomUUID());
+        //
+        // Timeout timeout = new
+        // Timeout(Duration.create(actorSystem.settings().config().getInt("session.aerospike.fetch-timeout"),
+        // "seconds"));
+        // Future<Object> future = Patterns.ask(fetcherRef, new
+        // FetchSession(id), timeout);
 
         // this blocks current running thread
         long start = System.nanoTime();
         return null;
-//        try {
-//            Object result = Await.result(future, timeout.duration());
-//            log.debug("{}", result);
-//            if (result == SessionControlEvent.NOT_FOUND) {
-//                log.warn("Session {} not found", id);
-//                return null;
-//            } else if (result instanceof MapSession) {
-//                final AerospikeSession session = new AerospikeSession((MapSession) result);
-//                session.setLastAccessedTime(System.currentTimeMillis());
-//                return session;
-//            } else {
-//                log.error("Unknown response: {}", result);
-//                return null;
-//            }
-//        } catch (Exception e) {
-//            log.error("Session {} fetch problem: {}", id, e.getMessage());
-//            log.debug("", e);
-//            return null;
-//        } finally {
-//            log.trace("Session load: {} ns", System.nanoTime() - start);
-//        }
+        // try {
+        // Object result = Await.result(future, timeout.duration());
+        // log.debug("{}", result);
+        // if (result == SessionControlEvent.NOT_FOUND) {
+        // log.warn("Session {} not found", id);
+        // return null;
+        // } else if (result instanceof MapSession) {
+        // final AerospikeSession session = new AerospikeSession((MapSession)
+        // result);
+        // session.setLastAccessedTime(System.currentTimeMillis());
+        // return session;
+        // } else {
+        // log.error("Unknown response: {}", result);
+        // return null;
+        // }
+        // } catch (Exception e) {
+        // log.error("Session {} fetch problem: {}", id, e.getMessage());
+        // log.debug("", e);
+        // return null;
+        // } finally {
+        // log.trace("Session load: {} ns", System.nanoTime() - start);
+        // }
 
     }
 
     /**
-     * Creates immutable snapshot of message metadata and attributes.
+     * Creates immutable snapshot of session metadata and attributes.
      * 
      * @param aerospikeSession
      * @return immutable session snapshot
@@ -250,7 +292,7 @@ public class AerospikeStoreSessionRepository implements
                 .maxInactiveIntervalInSec(aerospikeSession.getMaxInactiveIntervalInSeconds())
                 .updated(aerospikeSession.isUpdated());
 
-        Set<String> attributeNames = aerospikeSession.getAttributeNames();
+        final Set<String> attributeNames = aerospikeSession.getAttributeNames();
         for (String name : attributeNames) {
             builder.addAattribute(name, aerospikeSession.getAttribute(name));
         }
@@ -259,19 +301,18 @@ public class AerospikeStoreSessionRepository implements
 
     public void delete(final String sessionId) {
         log.debug("Removing session '{}'", sessionId);
-//        this.expirationPolicy.onDelete(sessionId);
+        // this.expirationPolicy.onDelete(sessionId);
     }
 
     public AerospikeSession createSession() {
         final AerospikeSession aerospikeSession = new AerospikeSession();
-        if (defaultMaxInactiveInterval != null) {
-            aerospikeSession.setMaxInactiveIntervalInSeconds(defaultMaxInactiveInterval);
-        }
+        aerospikeSession.setMaxInactiveIntervalInSeconds(storeMetadata.getMaxInactiveIntervalInSeconds());
         return aerospikeSession;
     }
 
     /**
-     * A custom implementation of {@link Session} that uses a {@link MapSession} as the basis for its mapping.
+     * A custom implementation of {@link Session} that uses a {@link MapSession}
+     * as the basis for its mapping.
      *
      * @author Vlad Aleksandrov
      */
@@ -294,11 +335,11 @@ public class AerospikeStoreSessionRepository implements
          * Creates a new instance from the provided {@link MapSession}
          *
          * @param cached
-         *            the {@MapSession} that represents the persisted session that was retrieved. Cannot be
-         *            null.
+         *            the {@MapSession} that represents the persisted session
+         *            that was retrieved. Cannot be null.
          */
         AerospikeSession(final MapSession cached) {
-            Assert.notNull("MapSession cannot be null");
+            Assert.notNull(cached, "MapSession cannot be null");
             this.cached = cached;
             updateExpirationTimestamp(cached.getLastAccessedTime(), cached.getMaxInactiveIntervalInSeconds());
         }
@@ -350,7 +391,8 @@ public class AerospikeStoreSessionRepository implements
         }
 
         /**
-         * Removes attribute and sets "updated" flag if the attribute did exist in session.
+         * Removes attribute and sets "updated" flag if the attribute did exist
+         * in session.
          */
         public void removeAttribute(String attributeName) {
             if (cached.getAttribute(attributeName) != null) {

@@ -20,11 +20,11 @@ import java.util.Set;
 import com.aerospike.client.Bin;
 import com.aerospike.client.Record;
 import com.aerospike.client.query.IndexType;
-import com.aerospike.client.query.RecordSet;
 
 /**
- * Interface that specified a basic set of Aerospike operations, implemented by {@link AerospikeTemplate}. Not often used but a
- * useful option for extensibility and testability (as it can be easily mocked or stubbed).
+ * Interface that specified a basic set of low level Aerospike operations,
+ * implemented by {@link AerospikeTemplate}. Not often used but a useful option
+ * for extensibility and testability (as it can be easily mocked or stubbed).
  * 
  * @author Vlad Aleksandrov
  */
@@ -33,40 +33,44 @@ public interface AerospikeOperations<K> {
     boolean hasKey(K key);
 
     void delete(K key);
-    
+
     void deleteBin(K key, String binName);
-    
+
     /**
      * Removes all records from set.
      */
     void deleteAll();
-    
+
     /**
-     * Persists a single bin in record. 
+     * Persists a single bin in record.
+     * 
      * @param key
      * @param data
      */
     void persist(K key, Bin value);
-    
+
     /**
-     * Persists multiple bins in the record. 
+     * Persists multiple bins in the record.
+     * 
      * @param key
      * @param data
      */
     void persist(K key, Set<Bin> data);
 
     Record fetch(K key);
-    
+
     /**
      * Creates secondary index.
+     * 
      * @param binName
      * @param indexName
      * @param indexType
      */
     void createIndex(String binName, String indexName, IndexType indexType);
-    
+
     /**
      * Fetches keys of records matching range query for indexed bin.
+     * 
      * @param binName
      * @param begin
      * @param end

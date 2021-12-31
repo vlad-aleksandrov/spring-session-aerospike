@@ -21,8 +21,12 @@ import java.lang.annotation.Target;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.session.Session;
 
 import com.aerospike.client.IAerospikeClient;
+
+import us.swcraft.springframework.session.store.StoreCompression;
+import us.swcraft.springframework.session.store.StoreSerializationType;
 
 /**
  * Add this annotation to an {@code @Configuration} class to expose the
@@ -51,11 +55,42 @@ import com.aerospike.client.IAerospikeClient;
 @Target(value = { java.lang.annotation.ElementType.TYPE })
 @Documented
 @Import(AerospikeHttpSessionConfiguration.class)
-@Configuration
+@Configuration(proxyBeanMethods = false)
 public @interface EnableAerospikeHttpSession {
+
+    /**
+     * Sets the maximum inactive interval in seconds between requests before
+     * newly created sessions will be invalidated. A negative time indicates
+     * that the session will never timeout. The default is 1800 (30 minutes).
+     *
+     * @return the number of seconds that the {@link Session} should be kept
+     *         alive between client requests.
+     */
     int maxInactiveIntervalInSeconds() default 1800;
 
+    /**
+     * Aerospike namespace for session data.
+     * 
+     * @return namespace name
+     */
     String namespace() default "cache";
 
+    /**
+     * Aerospike set name for session data.
+     * 
+     * @return set name
+     */
     String setname() default "httpsession";
+    
+    /**
+     * Store serialization type. 
+     * @return serialization type
+     */
+    StoreSerializationType serializationType() default StoreSerializationType.FST;  
+    
+    /**
+     * Store compression type. 
+     * @return compression type
+     */
+    StoreCompression compression() default StoreCompression.NONE;  
 }

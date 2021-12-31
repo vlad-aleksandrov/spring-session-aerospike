@@ -18,17 +18,18 @@ package us.swcraft.springframework.session.aerospike;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import us.swcraft.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
-import us.swcraft.springframework.session.messages.DeleteSession;
-import us.swcraft.springframework.session.messages.SessionControlEvent;
 
 /**
  * A strategy for expiring and deleting {@link AerospikeSession} instances.
  * 
  * @author Vlad Aleksandrov
  */
-final class AerospikeSessionExpirationPolicy {
+
+@Component
+public class AerospikeSessionExpirationPolicy {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
