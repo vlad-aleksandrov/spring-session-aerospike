@@ -15,10 +15,9 @@
  */
 package us.swcraft.springframework.session.messages;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Immutable session snapshot to save.
@@ -91,14 +90,14 @@ public class SessionSnapshot {
 
     }
 
-    private SessionSnapshot(Builder builder) {
+    private SessionSnapshot(final Builder builder) {
         sessionId = builder.sessionId;
         expirationTimestamp = builder.expirationTimestamp;
         updated = builder.updated;
         creationTime = builder.creationTime;
         lastAccessedTime = builder.lastAccessedTime;
         maxInactiveIntervalInSec = builder.maxInactiveIntervalInSec;
-        sessionAttrs = ImmutableMap.copyOf(builder.sessionAttrs);
+        sessionAttrs = Collections.unmodifiableMap(new HashMap<>(builder.sessionAttrs));
     }
 
     public String getSessionId() {

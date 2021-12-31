@@ -16,7 +16,15 @@
 
 package us.swcraft.springframework.session.aerospike;
 
-import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.*;
+import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.CREATION_TIME_BIN;
+import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.EXPIRED_BIN;
+import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.EXPIRED_INDEX;
+import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.LAST_ACCESSED_BIN;
+import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.MAX_INACTIVE_BIN;
+import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.SESSION_ATTRIBUTES_BIN;
+import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.SESSION_ID_BIN;
+
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -32,12 +40,14 @@ import org.springframework.session.ExpiringSession;
 import org.springframework.session.MapSession;
 import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
+import org.springframework.session.data.redis.SessionMessageListener;
 import org.springframework.session.events.SessionDestroyedEvent;
 import org.springframework.session.web.http.SessionRepositoryFilter;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
 import com.aerospike.client.Bin;
+import com.aerospike.client.Record;
 import com.aerospike.client.query.IndexType;
 
 import us.swcraft.springframework.session.configuration.StoreMetadata;
@@ -180,6 +190,9 @@ public class AerospikeStoreSessionRepository
     @Inject
     private StoreSerializer<Map<String, Object>> serializer;
 
+    @SuppressWarnings("rawtypes")
+    private Class attributesMapClass = new HashMap<String, Object>().getClass();
+
     /**
      * Storage initialization.
      */
@@ -237,7 +250,7 @@ public class AerospikeStoreSessionRepository
         this.expirationPolicy.cleanExpiredSessions();
     }
 
-    public AerospikeSession getSession(String id) {
+    public AerospikeSession getSession(final String id) {
         // Create "per-request" fetcher actor and hand over a session id to be
         // fetched
         // ActorRef fetcherRef =
@@ -251,8 +264,61 @@ public class AerospikeStoreSessionRepository
         // FetchSession(id), timeout);
 
         // this blocks current running thread
-        long start = System.nanoTime();
-        return null;
+
+        final Record sessionRecord = aerospikeOperations.fetch(id);
+        if (sessionRecord == null) {
+            log.debug("Session {} not found", id);
+            return null;
+        }
+        // reconstruct Aerospike session - extract metadata first
+        final MapSession loaded = new MapSession();
+
+        loaded.setId(id);
+        log.debug("Session id: {}", loaded.getId());
+        loaded.setCreationTime(sessionRecord.getLong(CREATION_TIME_BIN));
+        log.debug("Session created: {}", loaded.getCreationTime());
+        loaded.setMaxInactiveIntervalInSeconds(sessionRecord.getInt(MAX_INACTIVE_BIN));
+        log.debug("Session max inactive interval: {}", loaded.getMaxInactiveIntervalInSeconds());
+        loaded.setLastAccessedTime(sessionRecord.getLong(LAST_ACCESSED_BIN));
+        log.debug("Session last access time: {}", loaded.getLastAccessedTime());
+        if (loaded.isExpired()) {
+            return null;
+        } else {
+            // now extract session attributes as byte array and then convert it
+            // back to map
+            final byte[] serializedAttributes = (byte[]) sessionRecord.getValue(SESSION_ATTRIBUTES_BIN);
+
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> attributes = serializer.deserialize(serializedAttributes, attributesMapClass);
+            if (serializedAttributes == null) {
+                return null;
+            }
+
+            for (Map.Entry<String, Object> entry : attributes.entrySet()) {
+                final String key = entry.getKey();
+                final Object value = entry.getValue();
+                loaded.setAttribute(key, value);
+            }
+            // restore session
+            final AerospikeSession session = new AerospikeSession(loaded);
+            session.setLastAccessedTime(System.currentTimeMillis());
+            return session;
+
+        }
+
+        // // expecting
+        // // hashmap of attributes back for future processing
+        // final byte[] serializedAttributes = (byte[])
+        // sessionRecord.getValue(SESSION_ATTRIBUTES_BIN);
+        // if (serializedAttributes == null) {
+        // log.debug("Session {} serialized arrtubures is null", sessionId);
+        // notifyNotFound();
+        // } else {
+        // getContext().actorSelection("../" + SESSION_SERIALIZER).tell(
+        // new SessionAttributesBinary(serializedAttributes), self());
+        // }
+        // }
+
         // try {
         // Object result = Await.result(future, timeout.duration());
         // log.debug("{}", result);

@@ -15,9 +15,9 @@
  */
 package us.swcraft.springframework.session.messages;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Immutable session attributes for serialization.
@@ -27,8 +27,8 @@ public class SessionAttributes {
 
     private final Map<String, Object> attributes;
 
-    public SessionAttributes(Map<String, Object> attributes) {
-        this.attributes = ImmutableMap.copyOf(attributes);
+    public SessionAttributes(final Map<String, Object> attributes) {
+        this.attributes = Collections.unmodifiableMap(new HashMap<>(attributes));
     }
 
     public Map<String, Object> getAttributes() {

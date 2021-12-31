@@ -36,7 +36,6 @@ dependencies {
     implementation "de.javakaffee:kryo-serializers:$kryoSerializersVersion"
     implementation "de.ruedigermoeller:fst:$fstSerializersVersion"
     implementation "org.iq80.snappy:snappy:$snappyVersion"
-    implementation "com.google.guava:guava:$guavaVersion"
 
     // Aerospike Driver
     implementation "com.aerospike:aerospike-client:$aerospikeVersion"
