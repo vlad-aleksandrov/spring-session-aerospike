@@ -25,32 +25,30 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
 
-import us.swcraft.springframework.session.aerospike.Attributes;
-
 public class AttributesTest {
-    
+
     @Test
     public void atomicLong() {
         assertThat(Attributes.areEqual(new AtomicLong(4), new AtomicLong(4)), is(true));
         assertThat(Attributes.areEqual(new AtomicLong(4), new AtomicLong(5)), is(false));
     }
-    
+
     @Test
     public void atomicInteger() {
         assertThat(Attributes.areEqual(new AtomicInteger(4), new AtomicInteger(4)), is(true));
         assertThat(Attributes.areEqual(new AtomicInteger(4), new AtomicInteger(5)), is(false));
     }
-    
+
     @Test
     public void atomicIntegerInMap() {
         Map<String, AtomicInteger> m1 = new HashMap<>();
         AtomicInteger v1 = new AtomicInteger(0);
         m1.put("K", v1);
-        
+
         Map<String, AtomicInteger> m2 = new HashMap<>();
         AtomicInteger v2 = new AtomicInteger(0);
         m2.put("K", v2);
-        
+
         assertThat(Attributes.areEqual(m1, m2), is(true));
         v2.incrementAndGet();
         assertThat(Attributes.areEqual(m1, m2), is(false));

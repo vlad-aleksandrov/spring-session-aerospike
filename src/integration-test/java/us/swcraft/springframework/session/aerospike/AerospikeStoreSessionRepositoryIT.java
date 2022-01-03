@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.session.SessionRepository;
 
 import us.swcraft.org.springframework.store.aerospike.test.BaseIntegrationTest;
-import us.swcraft.springframework.session.aerospike.AerospikeStoreSessionRepository;
 import us.swcraft.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
 
 public class AerospikeStoreSessionRepositoryIT extends BaseIntegrationTest {

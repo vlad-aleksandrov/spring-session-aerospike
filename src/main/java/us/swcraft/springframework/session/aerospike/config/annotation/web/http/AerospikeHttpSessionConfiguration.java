@@ -48,9 +48,7 @@ import us.swcraft.springframework.session.store.kryo.KryoStoreSerializer;
 
 /**
  * Exposes the {@link SessionRepositoryFilter} as a bean named
- * "springSessionRepositoryFilter". In order to use this a single instance of
- * each {@link IAerospikeClient} and {@link IAsyncClient} must be exposed as a
- * Bean.
+ * "springSessionRepositoryFilter".
  *
  * @author Vlad Aleksandrov
  *
@@ -108,14 +106,6 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
         storeMetadata.setCompression(compression);
         return storeMetadata;
     }
-
-    // @Bean
-    // public AerospikeStoreSessionRepository sessionRepository() {
-    // final AerospikeStoreSessionRepository sessionRepository = new
-    // AerospikeStoreSessionRepository();
-    // //sessionRepository.setDefaultMaxInactiveInterval(maxInactiveIntervalInSeconds);
-    // return sessionRepository;
-    // }
 
     /**
      * Session data serializer/deserializer.
@@ -193,13 +183,6 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
         this.httpSessionStrategy = httpSessionStrategy;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * org.springframework.beans.factory.BeanClassLoaderAware#setBeanClassLoader
-     * (java.lang.ClassLoader)
-     */
     public void setBeanClassLoader(ClassLoader classLoader) {
         this.beanClassLoader = classLoader;
     }

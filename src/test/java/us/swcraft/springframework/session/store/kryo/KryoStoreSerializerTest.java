@@ -29,11 +29,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import us.swcraft.springframework.session.store.StoreCompression;
-import us.swcraft.springframework.session.store.kryo.KryoStoreSerializer;
 
 public class KryoStoreSerializerTest {
 
     private Logger log = LoggerFactory.getLogger(this.getClass());
+
+    @SuppressWarnings("rawtypes")
+    private Class attributesMapClass = new HashMap<String, Object>().getClass();
 
     @Test
     public void serializeAndDeserializeCompressionSnappy_String() throws IOException {
@@ -67,30 +69,33 @@ public class KryoStoreSerializerTest {
         assertThat(result, notNullValue());
         assertThat(Arrays.equals(original, result), is(true));
     }
-    
+
     @Test
     public void serializeAndDeserializeCompressionSnappy_map() throws IOException {
         HashMap<String, Object> m = new HashMap<>();
-        m.put("A1", "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
-        m.put("A2", "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
-        m.put("A3", "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
-        m.put("A4", "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
+        m.put("A1",
+                "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
+        m.put("A2",
+                "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
+        m.put("A3",
+                "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
+        m.put("A4",
+                "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
 
-
-        KryoStoreSerializer<HashMap> converter = new KryoStoreSerializer<>(StoreCompression.SNAPPY);
+        KryoStoreSerializer<Map<String, Object>> converter = new KryoStoreSerializer<>(StoreCompression.SNAPPY);
 
         byte[] marshalled = converter.serialize(m);
         assertThat(marshalled, notNullValue());
         assertThat(marshalled.length > 0, is(true));
         log.debug("Result size: {}", marshalled.length);
 
-        Map<String, Object> result = converter.deserialize(marshalled, HashMap.class);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = converter.deserialize(marshalled, attributesMapClass);
 
         assertThat(result, notNullValue());
         assertThat(result.size(), is(4));
 
     }
-
 
     @Test
     public void serializeAndDeserializeCompressionNone_String() throws IOException {

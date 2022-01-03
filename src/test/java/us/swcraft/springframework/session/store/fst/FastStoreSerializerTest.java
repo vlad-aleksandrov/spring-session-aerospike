@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import us.swcraft.springframework.session.store.StoreCompression;
-import us.swcraft.springframework.session.store.fst.FastStoreSerializer;
 
 public class FastStoreSerializerTest {
 
@@ -67,16 +66,19 @@ public class FastStoreSerializerTest {
         assertThat(result, notNullValue());
         assertThat(Arrays.equals(original, result), is(true));
     }
-    
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void serializeAndDeserializeCompressionSnappy_map() throws IOException {
         HashMap<String, Object> m = new HashMap<>();
-        m.put("A1", "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
-        m.put("A2", "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
-        m.put("A3", "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
-        m.put("A4", "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
-
+        m.put("A1",
+                "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
+        m.put("A2",
+                "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
+        m.put("A3",
+                "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
+        m.put("A4",
+                "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
 
         FastStoreSerializer<HashMap> converter = new FastStoreSerializer<>(StoreCompression.SNAPPY);
 
@@ -91,7 +93,6 @@ public class FastStoreSerializerTest {
         assertThat(result.size(), is(4));
 
     }
-
 
     @Test
     public void serializeAndDeserializeCompressionNone_String() throws IOException {

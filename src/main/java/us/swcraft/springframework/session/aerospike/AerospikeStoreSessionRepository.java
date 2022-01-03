@@ -51,7 +51,7 @@ import com.aerospike.client.Record;
 import com.aerospike.client.query.IndexType;
 
 import us.swcraft.springframework.session.configuration.StoreMetadata;
-import us.swcraft.springframework.session.messages.SessionSnapshot;
+import us.swcraft.springframework.session.model.SessionSnapshot;
 import us.swcraft.springframework.session.store.StoreSerializer;
 import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
 
@@ -204,14 +204,6 @@ public class AerospikeStoreSessionRepository
     }
 
     public void save(final AerospikeSession session) {
-        // Create "per-request" persister actor and hand over a session snapshot
-        // to be saved
-        // ActorRef persisterRef =
-        // actorSystem.actorOf(springExtension.props(SESSION_PERSISTER),
-        // SESSION_PERSISTER + "_"
-        // + UUID.randomUUID());
-        // persisterRef.tell(createSessionSnapshot(session), null);
-
         final SessionSnapshot sessionSnapshot = createSessionSnapshot(session);
         log.debug("Prepare and save {}", sessionSnapshot);
         prepareAndSave(sessionSnapshot);
@@ -251,20 +243,6 @@ public class AerospikeStoreSessionRepository
     }
 
     public AerospikeSession getSession(final String id) {
-        // Create "per-request" fetcher actor and hand over a session id to be
-        // fetched
-        // ActorRef fetcherRef =
-        // actorSystem.actorOf(springExtension.props(SESSION_FETCHER),
-        // SESSION_FETCHER + "_" + UUID.randomUUID());
-        //
-        // Timeout timeout = new
-        // Timeout(Duration.create(actorSystem.settings().config().getInt("session.aerospike.fetch-timeout"),
-        // "seconds"));
-        // Future<Object> future = Patterns.ask(fetcherRef, new
-        // FetchSession(id), timeout);
-
-        // this blocks current running thread
-
         final Record sessionRecord = aerospikeOperations.fetch(id);
         if (sessionRecord == null) {
             log.debug("Session {} not found", id);
@@ -305,43 +283,7 @@ public class AerospikeStoreSessionRepository
             return session;
 
         }
-
-        // // expecting
-        // // hashmap of attributes back for future processing
-        // final byte[] serializedAttributes = (byte[])
-        // sessionRecord.getValue(SESSION_ATTRIBUTES_BIN);
-        // if (serializedAttributes == null) {
-        // log.debug("Session {} serialized arrtubures is null", sessionId);
-        // notifyNotFound();
-        // } else {
-        // getContext().actorSelection("../" + SESSION_SERIALIZER).tell(
-        // new SessionAttributesBinary(serializedAttributes), self());
-        // }
-        // }
-
-        // try {
-        // Object result = Await.result(future, timeout.duration());
-        // log.debug("{}", result);
-        // if (result == SessionControlEvent.NOT_FOUND) {
-        // log.warn("Session {} not found", id);
-        // return null;
-        // } else if (result instanceof MapSession) {
-        // final AerospikeSession session = new AerospikeSession((MapSession)
-        // result);
-        // session.setLastAccessedTime(System.currentTimeMillis());
-        // return session;
-        // } else {
-        // log.error("Unknown response: {}", result);
-        // return null;
-        // }
-        // } catch (Exception e) {
-        // log.error("Session {} fetch problem: {}", id, e.getMessage());
-        // log.debug("", e);
-        // return null;
-        // } finally {
-        // log.trace("Session load: {} ns", System.nanoTime() - start);
-        // }
-
+        
     }
 
     /**
@@ -367,7 +309,7 @@ public class AerospikeStoreSessionRepository
 
     public void delete(final String sessionId) {
         log.debug("Removing session '{}'", sessionId);
-        // this.expirationPolicy.onDelete(sessionId);
+        this.expirationPolicy.onDelete(sessionId);
     }
 
     public AerospikeSession createSession() {

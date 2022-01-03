@@ -13,9 +13,8 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package us.swcraft.springframework.session.messages;
+package us.swcraft.springframework.session.model;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -65,7 +64,7 @@ public class SessionSnapshot {
             this.lastAccessedTime = lastAccessedTime;
             return this;
         }
-        
+
         public Builder maxInactiveIntervalInSec(final int maxInactiveIntervalInSec) {
             this.maxInactiveIntervalInSec = maxInactiveIntervalInSec;
             return this;
@@ -73,6 +72,7 @@ public class SessionSnapshot {
 
         /**
          * Note: an attribute is added only if both name and value are not null.
+         * 
          * @param name
          * @param value
          * @return
@@ -97,7 +97,7 @@ public class SessionSnapshot {
         creationTime = builder.creationTime;
         lastAccessedTime = builder.lastAccessedTime;
         maxInactiveIntervalInSec = builder.maxInactiveIntervalInSec;
-        sessionAttrs = Collections.unmodifiableMap(new HashMap<>(builder.sessionAttrs));
+        sessionAttrs = new HashMap<>(builder.sessionAttrs);
     }
 
     public String getSessionId() {
@@ -127,10 +127,11 @@ public class SessionSnapshot {
     public Integer getMaxInactiveIntervalInSec() {
         return maxInactiveIntervalInSec;
     }
-    
+
     @Override
     public String toString() {
-        return new StringBuilder().append(this.getClass()).append("[").append(this.getSessionId()).append("]").toString();
+        return new StringBuilder().append(this.getClass()).append("[").append(this.getSessionId()).append("]")
+                .toString();
     }
 
 }

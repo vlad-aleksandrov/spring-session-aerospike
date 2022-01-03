@@ -53,8 +53,6 @@ import de.javakaffee.kryoserializers.JdkProxySerializer;
 import de.javakaffee.kryoserializers.KryoReflectionFactorySupport;
 import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
-import de.javakaffee.kryoserializers.guava.ImmutableListSerializer;
-import us.swcraft.springframework.session.messages.SerializedAttribute;
 import us.swcraft.springframework.session.store.SerializationException;
 import us.swcraft.springframework.session.store.StoreCompression;
 import us.swcraft.springframework.session.store.StoreSerializer;
@@ -101,18 +99,18 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
                 kryo.register(Collections.singletonList("").getClass(), new CollectionsSingletonListSerializer());
                 kryo.register(Collections.singleton("").getClass(), new CollectionsSingletonSetSerializer());
                 kryo.register(Collections.singletonMap("", "").getClass(), new CollectionsSingletonMapSerializer());
+                kryo.register(Collections.unmodifiableMap(new HashMap<>()).getClass(),
+                        new UnmodifiableCollectionsSerializer());
+
                 kryo.register(GregorianCalendar.class, new GregorianCalendarSerializer());
                 kryo.register(InvocationHandler.class, new JdkProxySerializer());
                 UnmodifiableCollectionsSerializer.registerSerializers(kryo);
                 SynchronizedCollectionsSerializer.registerSerializers(kryo);
 
-                // guava ImmutableList
-                ImmutableListSerializer.registerSerializers(kryo);
-
-                // Register our types
-                kryo.register(SerializedAttribute.class, 128);
+                // Register our internal types
                 kryo.register(HashMap.class, 129);
                 kryo.register(AbstractMap.SimpleImmutableEntry.class, 130);
+
                 return kryo;
             }
         };

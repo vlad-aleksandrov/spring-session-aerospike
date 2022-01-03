@@ -28,6 +28,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import us.swcraft.springframework.session.aerospike.config.annotation.web.http.EnableAerospikeHttpSession;
+import us.swcraft.springframework.session.store.StoreCompression;
+import us.swcraft.springframework.session.store.StoreSerializationType;
 
 import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.Host;
@@ -45,7 +47,8 @@ public abstract class BaseIntegrationTest {
 
     @Configuration
     @PropertySource(value = "classpath:/application.properties")
-    @EnableAerospikeHttpSession(namespace = "cache", setname = "httpsessionIT")
+    @EnableAerospikeHttpSession(maxInactiveIntervalInSeconds = 600, namespace = "cache", setname = "httpsessionIT",
+    serializationType = StoreSerializationType.KRYO, compression = StoreCompression.SNAPPY)
     static class Config {
 
         @Inject

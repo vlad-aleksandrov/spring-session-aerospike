@@ -16,11 +16,22 @@
 
 package us.swcraft.springframework.session.aerospike;
 
+import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.EXPIRED_BIN;
+import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.SESSION_ID_BIN;
+
+import java.util.Set;
+
+import javax.inject.Inject;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.session.events.SessionDestroyedEvent;
 import org.springframework.stereotype.Component;
 
 import us.swcraft.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
+import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
 
 /**
  * A strategy for expiring and deleting {@link AerospikeSession} instances.
@@ -33,23 +44,33 @@ public class AerospikeSessionExpirationPolicy {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-//    private final ActorSelection removerActor;
-//    private final ActorSelection expiredSessionsCaretakerActor;
-//
-//    public AerospikeSessionExpirationPolicy(ActorSelection removerActor, ActorSelection expiredSessionsCaretakerActor) {
-//        super();
-//        this.removerActor = removerActor;
-//        this.expiredSessionsCaretakerActor = expiredSessionsCaretakerActor;
-//    }
-//
-//    public void onDelete(final String sessionId) {
-//        log.debug("Session '{}' is going to be deleted.", sessionId);
-//        this.removerActor.tell(new DeleteSession(sessionId), null);
-//    }
-//
+    @Inject
+    private AerospikeOperations<String> aerospikeOperations;
+
+    @Inject
+    private ApplicationEventPublisher eventPublisher;
+
     public void cleanExpiredSessions() {
         log.debug("Expired sessions cleanup");
-//        this.expiredSessionsCaretakerActor.tell(SessionControlEvent.CLEAR_EXPIRED_SESSIONS, null);
+        final Set<String> expiredSession = aerospikeOperations.fetchRange(SESSION_ID_BIN, EXPIRED_BIN, 0L,
+                System.currentTimeMillis());
+        for (String sessionId : expiredSession) {
+            onDelete(sessionId);
+        }
+    }
+    
+    public void onDelete(final String sessionId) {
+        aerospikeOperations.delete(sessionId);
+        log.trace("Session {} deleted", sessionId);
+        publishEvent(new SessionDestroyedEvent(this, sessionId));
+    }
+
+    private void publishEvent(final ApplicationEvent event) {
+        try {
+            this.eventPublisher.publishEvent(event);
+        } catch (Throwable ex) {
+            log.error("Error publishing " + event, ex);
+        }
     }
 
 }

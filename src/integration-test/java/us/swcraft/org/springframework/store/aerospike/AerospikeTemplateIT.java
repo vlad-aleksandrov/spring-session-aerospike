@@ -61,7 +61,7 @@ public class AerospikeTemplateIT {
     
     @Before
     public void prepare() {
-        //template.deleteAll();
+        template.deleteAll();
     }
 
     @Test
