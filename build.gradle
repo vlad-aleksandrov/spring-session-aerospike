@@ -13,9 +13,9 @@ dependencies {
 
     // Logging
     implementation "org.slf4j:slf4j-api:$slf4jVersion"
-    testImplementation "log4j:log4j:$log4jVersion"
-    testImplementation "org.slf4j:slf4j-log4j12:$slf4jVersion"
-    
+    testImplementation "ch.qos.logback:logback-core:$logbackVersion"
+    testImplementation "ch.qos.logback:logback-classic:$logbackVersion"
+        
     // Spring Framework
     implementation("org.springframework:spring-core:$springVersion") {
         exclude group: "commons-logging", module: "commons-logging"
@@ -32,7 +32,7 @@ dependencies {
     implementation "javax.inject:javax.inject:$injectVersion"
 
     implementation "javax.servlet:javax.servlet-api:$servletApiVersion"
-    implementation "com.esotericsoftware:kryo-shaded:$kryoVersion"
+    implementation "com.esotericsoftware.kryo:kryo5:$kryoVersion"
     implementation "de.javakaffee:kryo-serializers:$kryoSerializersVersion"
     implementation "de.ruedigermoeller:fst:$fstSerializersVersion"
     implementation "org.iq80.snappy:snappy:$snappyVersion"

@@ -38,7 +38,7 @@ import org.springframework.util.ClassUtils;
 
 import com.aerospike.client.IAerospikeClient;
 
-import us.swcraft.springframework.session.configuration.StoreMetadata;
+import us.swcraft.springframework.session.model.StoreMetadata;
 import us.swcraft.springframework.session.store.StoreCompression;
 import us.swcraft.springframework.session.store.StoreSerializationType;
 import us.swcraft.springframework.session.store.StoreSerializer;
