@@ -17,7 +17,7 @@ To use the latest release in your application, use this dependency entry in your
 		<dependency>
 			<groupId>us.swcraft.springframework.session.aerospike</groupId>
 			<artifactId>spring-session-aerospike</artifactId>
-			<version>1.0.0-alpha-8</version>
+			<version>0.0.1</version>
 		</dependency>
 ````
 
