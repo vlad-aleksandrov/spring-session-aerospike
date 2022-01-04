@@ -21,7 +21,7 @@ To use the latest release in your application, use this dependency entry in your
 		</dependency>
 ````
 
-Add Aerospike clien dependecy:
+Add Aerospike java client dependecy:
 
 ````
 		<dependency>
@@ -42,6 +42,27 @@ Add Aerospike clien dependecy:
 
 Add `@EnableAerospikeHttpSession` annotation to the configuration java class file and define `aerospikeClient` client bean.
 
+Annotation parameters:
+
+`maxInactiveIntervalInSeconds` - set the maximum inactive interval in seconds between requests before newly created sessions will be invalidated. A negative time indicates that the session will never timeout. The default is `1800` (30 minutes).
+
+`namespace` - Aerospike namespace nmae for session data. Default is `cache`.
+
+`setname` - Aerospike set name for session data. Default is `httpsession`.
+
+`serializationType` - Session data serialization type. Supported types:
+- [FST](https://github.com/RuedigerMoeller/fast-serialization) fast serialization (default).
+- [KRYO}(https://github.com/EsotericSoftware/kryo) binary object graph serialization framework for Java.
+
+`compression` - Store compression type. Supported types:
+- NONE - No data compession (default).
+- [SNAPPY] (https://github.com/dain/snappy) - Snappy compression/decompression.
+
+All parameters set sample:
+````
+@EnableAerospikeHttpSession(maxInactiveIntervalInSeconds = 600, namespace = "cache", setname = "myhttpsession",
+   serializationType = StoreSerializationType.KRYO, compression = StoreCompression.SNAPPY)
+````
 
 ## Aerospike client configuration
 
@@ -75,7 +96,6 @@ In this simple example a single aerospike node is defimed in application propert
 aerospike.session.store.host = localhost
 aerospike.session.store.port = 3000
 ````
-
 
 
 # Acknowledgements
