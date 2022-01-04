@@ -51,16 +51,17 @@ Annotation parameters:
 `setname` - Aerospike set name for session data. Default is `httpsession`.
 
 `serializationType` - Session data serialization type. Supported types:
-- [FST](https://github.com/RuedigerMoeller/fast-serialization) fast serialization (default).
-- [KRYO}(https://github.com/EsotericSoftware/kryo) binary object graph serialization framework for Java.
+- [FST](https://github.com/RuedigerMoeller/fast-serialization) - fast serialization (default).
+- [KRYO](https://github.com/EsotericSoftware/kryo) - binary object graph serialization framework for Java.
 
 `compression` - Store compression type. Supported types:
 - NONE - No data compession (default).
-- [SNAPPY] (https://github.com/dain/snappy) - Snappy compression/decompression.
+- [SNAPPY](https://github.com/dain/snappy) - Snappy compression/decompression.
 
-All parameters set sample:
+All parameters defined sample:
 ````
-@EnableAerospikeHttpSession(maxInactiveIntervalInSeconds = 600, namespace = "cache", setname = "myhttpsession",
+@EnableAerospikeHttpSession(maxInactiveIntervalInSeconds = 600,
+   namespace = "cache", setname = "myhttpsession",
    serializationType = StoreSerializationType.KRYO, compression = StoreCompression.SNAPPY)
 ````
 
