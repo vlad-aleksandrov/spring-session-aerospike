@@ -72,7 +72,7 @@ All parameters defined sample:
 @EnableAerospikeHttpSession
 public class SessionStoreConfiguration {
     
-    @Inject
+    @Autowire
     private Environment env;
 
     @Bean(destroyMethod = "close")
