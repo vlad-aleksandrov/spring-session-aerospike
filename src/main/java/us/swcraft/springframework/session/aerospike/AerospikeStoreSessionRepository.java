@@ -123,8 +123,9 @@ public class AerospikeStoreSessionRepository
             binsToSave.add(new Bin(EXPIRED_BIN, sessionSnapshot.getExpirationTimestamp()));
         }
         if (sessionSnapshot.isUpdated()) {
+            log.trace("Session {} attributes: {}", sessionId, sessionSnapshot.getSessionAttrs());
             final byte[] attrs = serializer.serialize(sessionSnapshot.getSessionAttrs());
-            log.trace("Session {} attributes: {} bytes", sessionId, attrs.length);
+            log.trace("Session {} attributes serialized: {} bytes", sessionId, attrs.length);
             binsToSave.add(new Bin(SESSION_ATTRIBUTES_BIN, attrs));
         }
         aerospikeOperations.persist(sessionId, binsToSave);

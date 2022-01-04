@@ -71,7 +71,7 @@ public class AerospikeTemplateIT {
     
     @Test
     public void fetch() throws InterruptedException {
-        template.createIndex("expired", "expiredIndx", IndexType.NUMERIC);
+        template.createIndex("expired", "expiredIndxIT", IndexType.NUMERIC);
         String id = UUID.randomUUID().toString();
         Set<Bin> bins = new HashSet<>();
         bins.add(new Bin("sessionId", id));

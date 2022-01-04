@@ -15,6 +15,7 @@
  */
 package us.swcraft.springframework.session.store.aerospike;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -96,7 +97,12 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         log.trace("has {} key?", key);
         Assert.notNull(key, "key can't be null");
         final Key recordKey = new Key(namespace, setname, key);
-        return getAerospikeClient().exists(readPolicy, recordKey);
+        try {
+            return getAerospikeClient().exists(readPolicy, recordKey);
+        } catch (AerospikeException e) {
+            log.error("check exist  fails", e);
+            return false;
+        }
     }
 
     @Override
@@ -104,7 +110,11 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         log.trace("delete {} key", key);
         Assert.notNull(key, "key can't be null");
         final Key recordKey = new Key(namespace, setname, key);
-        getAerospikeClient().delete(deletePolicy, recordKey);
+        try {
+            getAerospikeClient().delete(deletePolicy, recordKey);
+        } catch (AerospikeException e) {
+            log.error("delete key fails", e);
+        }
     }
 
     @Override
@@ -114,7 +124,11 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         final Key recordKey = new Key(namespace, setname, key);
         Assert.notNull(binName, "bin name can't be null");
         final Bin bin = Bin.asNull(binName);
-        getAerospikeClient().put(deletePolicy, recordKey, bin);
+        try {
+            getAerospikeClient().put(deletePolicy, recordKey, bin);
+        } catch (AerospikeException e) {
+            log.error("delete bin fails", e);
+        }
     }
 
     @Override
@@ -147,7 +161,12 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
     public Record fetch(final String key) {
         Assert.notNull(key, "key can't be null");
         final Key recordKey = new Key(namespace, setname, key);
-        return getAerospikeClient().get(readPolicy, recordKey);
+        try {
+            return getAerospikeClient().get(readPolicy, recordKey);
+        } catch (AerospikeException e) {
+            log.error("read fails", e);
+            return null;
+        }
     }
 
     /**
@@ -162,21 +181,25 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
             final IndexTask task = getAerospikeClient().createIndex(policy, namespace, setname, indexName, binName,
                     indexType);
             task.waitTillComplete();
+            log.debug("Index '{}' on {}:{} bin '{}' created", indexName, namespace, setname, binName);
+
         } catch (AerospikeException e) {
             if (e.getResultCode() == 200) {
-                log.trace("Index {} already exists");
+                log.trace("Index {} already exists", indexName);
             } else {
                 throw new RuntimeException(e);
             }
         }
-
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Set<String> fetchRange(String idBinName, String indexedBinName, long begin, long end) {
+    public Set<String> fetchRange(final String idBinName, final String indexedBinName, final long begin,
+            final long end) {
+
+        log.debug("Fetch range {}:{} on {}:{} bin '{}'", begin, end, namespace, setname, indexedBinName);
 
         final Statement stmt = new Statement();
         stmt.setNamespace(namespace);
@@ -184,28 +207,35 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         stmt.setBinNames(indexedBinName);
         stmt.setFilter(Filter.range(indexedBinName, begin, end));
 
-        final RecordSet rs = getAerospikeClient().query(null, stmt);
-        final Set<String> result = new HashSet<>();
         try {
-            while (rs.next()) {
-                Key key = rs.getKey();
-                log.trace("Found key: {}", key);
-                Record record = getAerospikeClient().get(readPolicy, key, idBinName);
-                if (record != null) {
-                    result.add(record.getString(idBinName));
+            final RecordSet rs = getAerospikeClient().query(null, stmt);
+            final Set<String> result = new HashSet<>();
+            try {
+                while (rs.next()) {
+                    Key key = rs.getKey();
+                    log.trace("Found key: {}", key);
+                    Record record = getAerospikeClient().get(readPolicy, key, idBinName);
+                    if (record != null) {
+                        result.add(record.getString(idBinName));
+                    }
                 }
+            } finally {
+                rs.close();
             }
-        } finally {
-            rs.close();
+            return result;
+        } catch (AerospikeException e) {
+            log.error("query failed", e);
+            return Collections.emptySet();
         }
-        return result;
     }
 
-    public void setNamespace(String namespace) {
+    public void setNamespace(final String namespace) {
+        log.debug("Session store namespace: {}", namespace);
         this.namespace = namespace;
     }
 
-    public void setSetname(String setname) {
+    public void setSetname(final String setname) {
+        log.debug("Session store setname: {}", setname);
         this.setname = setname;
     }
 

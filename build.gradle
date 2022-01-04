@@ -34,7 +34,7 @@ dependencies {
     implementation "javax.servlet:javax.servlet-api:$servletApiVersion"
     implementation "com.esotericsoftware.kryo:kryo5:$kryoVersion"
     implementation "de.javakaffee:kryo-serializers:$kryoSerializersVersion"
-    implementation "de.ruedigermoeller:fst:$fstSerializersVersion"
+    implementation ("de.ruedigermoeller:fst:$fstSerializersVersion")
     implementation "org.iq80.snappy:snappy:$snappyVersion"
 
     // Aerospike Driver
