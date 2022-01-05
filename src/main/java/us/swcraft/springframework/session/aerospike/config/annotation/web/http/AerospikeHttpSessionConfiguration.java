@@ -182,6 +182,7 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
         if (httpSessionStrategy != null) {
             sessionRepositoryFilter.setHttpSessionStrategy(httpSessionStrategy);
         }
+        
         return sessionRepositoryFilter;
     }
 

@@ -1,5 +1,5 @@
 # spring-session-aerospike
-Store session data in Aerospike.
+Store HTTP session data in Aerospike for Spring MVC web application.
 
 # Overview
 
@@ -46,7 +46,7 @@ Annotation parameters:
 
 `maxInactiveIntervalInSeconds` - set the maximum inactive interval in seconds between requests before newly created sessions will be invalidated. A negative time indicates that the session will never timeout. The default is `1800` (30 minutes).
 
-`namespace` - Aerospike namespace nmae for session data. Default is `cache`.
+`namespace` - Aerospike namespace name for session data. Default is `cache`.
 
 `setname` - Aerospike set name for session data. Default is `httpsession`.
 
