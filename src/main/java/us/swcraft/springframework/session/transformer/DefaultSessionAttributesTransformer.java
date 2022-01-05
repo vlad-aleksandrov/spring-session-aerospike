@@ -105,7 +105,7 @@ public class DefaultSessionAttributesTransformer implements SessionAttributesTra
     @Override
     public Map<String, Object> unmarshal(final byte[] binarySessionData) {
         if (binarySessionData == null || binarySessionData.length < 2) {
-            log.warn("Stored session data is too short");
+            log.trace("Stored session data is short - return an empty session");
             return Collections.emptyMap();
         }
 
