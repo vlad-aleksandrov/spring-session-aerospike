@@ -38,6 +38,9 @@ dependencies {
     }
     implementation "de.ruedigermoeller:fst:$fstSerializersVersion"
     implementation "org.iq80.snappy:snappy:$snappyVersion"
+    implementation ("cn.danielw:fast-object-pool:$fastObjectPoolVersion") {
+        exclude group: "org.jacoco", module: "jacoco-maven-plugin"
+    }
 
     // Aerospike Driver
     implementation "com.aerospike:aerospike-client:$aerospikeVersion"

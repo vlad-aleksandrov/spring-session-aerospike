@@ -42,5 +42,10 @@ public interface StoreSerializer<T> {
      * @return the equivalent object instance
      */
     T deserialize(byte[] bytes, Class<T> type) throws SerializationException;
+    
+    /**
+     * Closes serializer.
+     */
+    void close();
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 the original author or authors.
+ * Copyright 2015-2022 the original author or authors.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,8 +39,11 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers.LocaleSerializer;
-import com.esotericsoftware.kryo.util.Pool;
 
+import cn.danielw.fop.ObjectFactory;
+import cn.danielw.fop.ObjectPool;
+import cn.danielw.fop.PoolConfig;
+import cn.danielw.fop.Poolable;
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.CollectionsEmptyListSerializer;
 import de.javakaffee.kryoserializers.CollectionsEmptyMapSerializer;
@@ -72,7 +75,7 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
      */
     private StoreCompression compressionType = StoreCompression.NONE;
 
-    private Pool<Kryo> kryoPool;
+    private ObjectPool<Kryo> kryoPool;
 
     public KryoStoreSerializer() {
         init();
@@ -84,9 +87,15 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
     }
 
     private void init() {
-        final int poolSize = 64;
-        kryoPool = new Pool<Kryo>(true, false, poolSize) {
-            protected Kryo create() {
+
+        final PoolConfig poolConfig = new PoolConfig();
+        poolConfig.setPartitionSize(8);
+        poolConfig.setMaxSize(8);
+        poolConfig.setMinSize(8);
+
+        final ObjectFactory<Kryo> kryoFactory = new ObjectFactory<Kryo>() {
+            @Override
+            public Kryo create() {
                 Kryo kryo = new Kryo();
                 // Configure the Kryo instance.
                 kryo = new KryoReflectionFactorySupport();
@@ -111,62 +120,65 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
                 // Register our internal types
                 kryo.register(HashMap.class, 128);
                 kryo.register(AbstractMap.SimpleImmutableEntry.class, 129);
-                
+
                 kryo.register(MarshalledAttribute.class, 256);
 
                 return kryo;
             }
+
+            @Override
+            public void destroy(final Kryo kryo) {
+                // no-op
+            }
+
+            @Override
+            public boolean validate(final Kryo kryo) {
+                return true;
+            }
         };
 
-        // pre-initialize Kryo objects in pool
-        final Kryo[] kryoObjs = new Kryo[poolSize];
-        for (int i = 0; i < poolSize; ++i) {
-            kryoObjs[i] = kryoPool.obtain();
-        }
-        for (int i = 0; i < poolSize; ++i) {
-            kryoPool.free(kryoObjs[i]);
-        }
+        kryoPool = new ObjectPool<>(poolConfig, kryoFactory);
     }
 
     @Override
     public byte[] serialize(final T data) throws SerializationException {
-        final Kryo kryo = kryoPool.obtain();
-        try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);
-                final OutputStream compressionOutputStream = wrapOutputStream(outputStream);
-                final Output output = new Output(compressionOutputStream);) {
+        try (Poolable<Kryo> po = kryoPool.borrowObject()) {
+            final Kryo kryo = po.getObject();
 
-            kryo.writeClassAndObject(output, data);
-            output.flush();
-            compressionOutputStream.flush();
-            outputStream.flush();
-            return outputStream.toByteArray();
-        } catch (Exception e) {
-            log.error("Serialization error: {}", e.getMessage());
-            log.trace("", e);
-            throw new SerializationException(data.getClass() + " serialization problem", e);
-        } finally {
-            kryoPool.free(kryo);
+            try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);
+                    final OutputStream compressionOutputStream = wrapOutputStream(outputStream);
+                    final Output output = new Output(compressionOutputStream);) {
+
+                kryo.writeClassAndObject(output, data);
+                output.flush();
+                compressionOutputStream.flush();
+                outputStream.flush();
+                return outputStream.toByteArray();
+            } catch (Exception e) {
+                log.error("Serialization error: {}", e.getMessage());
+                log.trace("", e);
+                throw new SerializationException(data.getClass() + " serialization problem", e);
+            }
         }
-
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public T deserialize(final byte[] serializedData, final Class<T> type) throws SerializationException {
-        final Kryo kryo = kryoPool.obtain();
+        try (Poolable<Kryo> po = kryoPool.borrowObject()) {
+            final Kryo kryo = po.getObject();
 
-        try (final ByteArrayInputStream inputStream = new ByteArrayInputStream(serializedData);
-                final InputStream decompressionInputStream = wrapInputStream(inputStream);
-                final Input input = new Input(decompressionInputStream);) {
+            try (final ByteArrayInputStream inputStream = new ByteArrayInputStream(serializedData);
+                    final InputStream decompressionInputStream = wrapInputStream(inputStream);
+                    final Input input = new Input(decompressionInputStream);) {
 
-            final T result = (T) kryo.readClassAndObject(input);
-            return result;
-        } catch (Exception e) {
-            log.error("Deserialization error: {}", e.getMessage());
-            log.trace("", e);
-            throw new SerializationException(type + " deserialization problem", e);
-        } finally {
-            kryoPool.free(kryo);
+                final T result = (T) kryo.readClassAndObject(input);
+                return result;
+            } catch (Exception e) {
+                log.error("Deserialization error: {}", e.getMessage());
+                log.trace("", e);
+                throw new SerializationException(type + " deserialization problem", e);
+            }
         }
     }
 
@@ -185,6 +197,18 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
                 return new SnappyFramedInputStream(is, false);
             default:
                 return new BufferedInputStream(is);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close() {
+        try {
+            kryoPool.shutdown();
+        } catch (InterruptedException e) {
+            // no-op
         }
     }
 
