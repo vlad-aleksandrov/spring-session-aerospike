@@ -96,6 +96,7 @@ public class FastStoreSerializer<T> implements StoreSerializer<T> {
             log.trace("", e);
             throw new SerializationException(data.getClass() + " serialization problem", e);
         } finally {
+            conf.clearCaches();
             fstConfPool.free(conf);
         }
 

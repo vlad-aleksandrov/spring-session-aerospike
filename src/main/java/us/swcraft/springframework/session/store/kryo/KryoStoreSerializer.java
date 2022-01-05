@@ -53,6 +53,7 @@ import de.javakaffee.kryoserializers.JdkProxySerializer;
 import de.javakaffee.kryoserializers.KryoReflectionFactorySupport;
 import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
+import us.swcraft.springframework.session.model.MarshalledAttribute;
 import us.swcraft.springframework.session.store.SerializationException;
 import us.swcraft.springframework.session.store.StoreCompression;
 import us.swcraft.springframework.session.store.StoreSerializer;
@@ -108,8 +109,10 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
                 SynchronizedCollectionsSerializer.registerSerializers(kryo);
 
                 // Register our internal types
-                kryo.register(HashMap.class, 129);
-                kryo.register(AbstractMap.SimpleImmutableEntry.class, 130);
+                kryo.register(HashMap.class, 128);
+                kryo.register(AbstractMap.SimpleImmutableEntry.class, 129);
+                
+                kryo.register(MarshalledAttribute.class, 256);
 
                 return kryo;
             }
@@ -132,7 +135,7 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
                 final OutputStream compressionOutputStream = wrapOutputStream(outputStream);
                 final Output output = new Output(compressionOutputStream);) {
 
-            kryo.writeObject(output, data);
+            kryo.writeClassAndObject(output, data);
             output.flush();
             compressionOutputStream.flush();
             outputStream.flush();
@@ -147,6 +150,7 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
 
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public T deserialize(final byte[] serializedData, final Class<T> type) throws SerializationException {
         final Kryo kryo = kryoPool.obtain();
@@ -155,7 +159,7 @@ public class KryoStoreSerializer<T> implements StoreSerializer<T> {
                 final InputStream decompressionInputStream = wrapInputStream(inputStream);
                 final Input input = new Input(decompressionInputStream);) {
 
-            final T result = kryo.readObject(input, type);
+            final T result = (T) kryo.readClassAndObject(input);
             return result;
         } catch (Exception e) {
             log.error("Deserialization error: {}", e.getMessage());

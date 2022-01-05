@@ -24,7 +24,6 @@ import static us.swcraft.springframework.session.aerospike.PersistentSessionAero
 import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.SESSION_ATTRIBUTES_BIN;
 import static us.swcraft.springframework.session.aerospike.PersistentSessionAerospike.SESSION_ID_BIN;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +50,7 @@ import com.aerospike.client.query.IndexType;
 
 import us.swcraft.springframework.session.model.SessionSnapshot;
 import us.swcraft.springframework.session.model.StoreMetadata;
-import us.swcraft.springframework.session.store.StoreSerializer;
+import us.swcraft.springframework.session.store.SessionAttributesTransformer;
 import us.swcraft.springframework.session.store.aerospike.AerospikeOperations;
 
 /**
@@ -81,10 +80,7 @@ public class AerospikeStoreSessionRepository
     private AerospikeSessionExpirationPolicy expirationPolicy;
 
     @Inject
-    private StoreSerializer<Map<String, Object>> serializer;
-
-    @SuppressWarnings("rawtypes")
-    private Class attributesMapClass = new HashMap<String, Object>().getClass();
+    private SessionAttributesTransformer transformer;
 
     /**
      * Storage initialization.
@@ -124,8 +120,7 @@ public class AerospikeStoreSessionRepository
         }
         if (sessionSnapshot.isUpdated()) {
             log.trace("Session {} attributes: {}", sessionId, sessionSnapshot.getSessionAttrs());
-            final byte[] attrs = serializer.serialize(sessionSnapshot.getSessionAttrs());
-            log.trace("Session {} attributes serialized: {} bytes", sessionId, attrs.length);
+            final byte[] attrs = transformer.marshall(sessionSnapshot.getSessionAttrs());
             binsToSave.add(new Bin(SESSION_ATTRIBUTES_BIN, attrs));
         }
         aerospikeOperations.persist(sessionId, binsToSave);
@@ -160,10 +155,11 @@ public class AerospikeStoreSessionRepository
             // back to map
             final byte[] serializedAttributes = (byte[]) sessionRecord.getValue(SESSION_ATTRIBUTES_BIN);
 
-            @SuppressWarnings("unchecked")
-            final Map<String, Object> attributes = serializer.deserialize(serializedAttributes, attributesMapClass);
+            final Map<String, Object> attributes = transformer.unmarshal(serializedAttributes);
             if (serializedAttributes == null) {
-                return null;
+                final AerospikeSession session = new AerospikeSession();
+                session.setLastAccessedTime(System.currentTimeMillis());
+                return session;
             }
 
             for (Map.Entry<String, Object> entry : attributes.entrySet()) {
@@ -175,7 +171,6 @@ public class AerospikeStoreSessionRepository
             final AerospikeSession session = new AerospikeSession(loaded);
             session.setLastAccessedTime(System.currentTimeMillis());
             return session;
-
         }
 
     }

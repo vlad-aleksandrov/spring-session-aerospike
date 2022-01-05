@@ -54,6 +54,6 @@ abstract class PersistentSessionAerospike {
     /**
      * The Aerospike bin name for session attributes map.
      */
-    static final String SESSION_ATTRIBUTES_BIN = "sessionAttr";
+    static final String SESSION_ATTRIBUTES_BIN = "attributes";
 
 }

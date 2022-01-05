@@ -16,8 +16,9 @@
 package us.swcraft.springframework.session.store;
 
 /**
- * Basic interface serialization and deserialization of Objects to byte arrays (binary data). It is recommended that
- * implementations are designed to handle null objects/empty arrays on serialization and deserialization side.
+ * Basic interface serialization and deserialization of Objects to byte arrays
+ * (binary data). It is recommended that implementations are designed to handle
+ * null objects/empty arrays on serialization and deserialization side.
  * 
  * @author Vlad Aleksandrov
  * 

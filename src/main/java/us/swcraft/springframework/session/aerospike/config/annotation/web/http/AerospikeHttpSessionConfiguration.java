@@ -15,6 +15,7 @@
  */
 package us.swcraft.springframework.session.aerospike.config.annotation.web.http;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -38,6 +39,7 @@ import org.springframework.util.ClassUtils;
 
 import com.aerospike.client.IAerospikeClient;
 
+import us.swcraft.springframework.session.model.MarshalledAttribute;
 import us.swcraft.springframework.session.model.StoreMetadata;
 import us.swcraft.springframework.session.store.StoreCompression;
 import us.swcraft.springframework.session.store.StoreSerializationType;
@@ -56,7 +58,7 @@ import us.swcraft.springframework.session.store.kryo.KryoStoreSerializer;
  */
 @Configuration
 @EnableScheduling
-@ComponentScan("us.swcraft.springframework.session.aerospike")
+@ComponentScan("us.swcraft.springframework.session")
 public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClassLoaderAware {
 
     private ClassLoader beanClassLoader;
@@ -106,21 +108,20 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
         storeMetadata.setCompression(compression);
         return storeMetadata;
     }
-
+    
     /**
-     * Session data serializer/deserializer.
+     * Single attribute serializer/deserializer.
      * 
      * @return
      */
-    @Bean
-    public StoreSerializer<Map<String, Object>> storeSerializer() {
-
+    @Bean("ssa-attrobuteSerializer")
+    public StoreSerializer<Serializable> attributeSerializer() {
         if (serializationType == StoreSerializationType.FST) {
             switch (compression) {
                 case NONE:
-                    return new FastStoreSerializer<Map<String, Object>>();
+                    return new FastStoreSerializer<Serializable>();
                 case SNAPPY:
-                    return new FastStoreSerializer<Map<String, Object>>(StoreCompression.SNAPPY);
+                    return new FastStoreSerializer<Serializable>(StoreCompression.SNAPPY);
                 default:
                     throw new RuntimeException("Unsupported compression " + compression);
             }
@@ -128,15 +129,31 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
         if (serializationType == StoreSerializationType.KRYO) {
             switch (compression) {
                 case NONE:
-                    return new KryoStoreSerializer<Map<String, Object>>();
+                    return new KryoStoreSerializer<Serializable>();
                 case SNAPPY:
-                    return new KryoStoreSerializer<Map<String, Object>>(StoreCompression.SNAPPY);
+                    return new KryoStoreSerializer<Serializable>(StoreCompression.SNAPPY);
                 default:
                     throw new RuntimeException("Unsupported compression " + compression);
             }
         }
         throw new RuntimeException("Unsupported serializer " + serializationType);
     }
+    
+    /**
+     * Marshalled attributes serializer/deserializer.
+     * 
+     * @return
+     */
+    @Bean("ssa-marshalledAttrobutesSerializer")
+    public StoreSerializer<Map<String, MarshalledAttribute>> marshalledAttributesSerializer() {
+        if (serializationType == StoreSerializationType.FST) {
+            return new FastStoreSerializer<Map<String, MarshalledAttribute>>();
+        }
+        if (serializationType == StoreSerializationType.KRYO) {
+            return new KryoStoreSerializer<Map<String, MarshalledAttribute>>();            
+        }
+        throw new RuntimeException("Unsupported serializer " + serializationType);
+    }       
 
     @Bean
     public <S extends ExpiringSession> SessionRepositoryFilter<? extends ExpiringSession> springSessionRepositoryFilter(
