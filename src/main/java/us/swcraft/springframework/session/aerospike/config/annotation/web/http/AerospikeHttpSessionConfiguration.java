@@ -23,15 +23,23 @@ import java.util.concurrent.ThreadPoolExecutor;
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
 
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanClassLoaderAware;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanExpressionResolver;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportAware;
+import org.springframework.context.expression.StandardBeanExpressionResolver;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.type.AnnotationMetadata;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -64,9 +72,13 @@ import us.swcraft.springframework.session.store.kryo.KryoStoreSerializer;
 @EnableScheduling
 @EnableAsync
 @ComponentScan("us.swcraft.springframework.session")
-public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClassLoaderAware {
+public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClassLoaderAware, BeanFactoryAware {
 
     private ClassLoader beanClassLoader;
+
+    private BeanFactory beanFactory;
+
+    private BeanExpressionResolver resolver = new StandardBeanExpressionResolver();
 
     /**
      * Default max inactivity interval.
@@ -92,22 +104,21 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     private StoreCompression compression = StoreCompression.NONE;
 
     private HttpSessionStrategy httpSessionStrategy;
-    
-    
+
     @Bean("ssa-taskExecutor")
     public Executor taskExecutor() {
-      final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-      executor.setCorePoolSize(4);
-      executor.setMaxPoolSize(4);
-      executor.setQueueCapacity(0);
-      executor.setDaemon(true);
-      executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-      executor.setThreadNamePrefix("sessionStore-");
-      executor.initialize();
-      return executor;
+        final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(0);
+        executor.setDaemon(true);
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.setThreadNamePrefix("sessionStore-");
+        executor.initialize();
+        return executor;
     }
 
-    @Bean(name="ssa-sessionAerospikeTemplate", initMethod = "init")
+    @Bean(name = "ssa-sessionAerospikeTemplate", initMethod = "init")
     @Inject
     public AerospikeTemplate sessionAerospikeTemplate(final IAerospikeClient aerospikeClient) {
         final AerospikeTemplate template = new AerospikeTemplate();
@@ -117,7 +128,7 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
         return template;
     }
 
-    @Bean(name="ssa-storeMetadata")
+    @Bean(name = "ssa-storeMetadata")
     public StoreMetadata storeMetadata() {
         final StoreMetadata storeMetadata = new StoreMetadata();
         storeMetadata.setMaxInactiveIntervalInSeconds(this.maxInactiveIntervalInSeconds);
@@ -127,7 +138,7 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
         storeMetadata.setCompression(compression);
         return storeMetadata;
     }
-    
+
     /**
      * Single attribute serializer/deserializer.
      * 
@@ -157,7 +168,7 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
         }
         throw new RuntimeException("Unsupported serializer " + serializationType);
     }
-    
+
     /**
      * Marshalled attributes serializer/deserializer.
      * 
@@ -169,10 +180,10 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
             return new FastStoreSerializer<Map<String, MarshalledAttribute>>();
         }
         if (serializationType == StoreSerializationType.KRYO) {
-            return new KryoStoreSerializer<Map<String, MarshalledAttribute>>();            
+            return new KryoStoreSerializer<Map<String, MarshalledAttribute>>();
         }
         throw new RuntimeException("Unsupported serializer " + serializationType);
-    }       
+    }
 
     @Bean
     public <S extends ExpiringSession> SessionRepositoryFilter<? extends ExpiringSession> springSessionRepositoryFilter(
@@ -182,7 +193,7 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
         if (httpSessionStrategy != null) {
             sessionRepositoryFilter.setHttpSessionStrategy(httpSessionStrategy);
         }
-        
+
         return sessionRepositoryFilter;
     }
 
@@ -208,19 +219,55 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
                 enableAttrs = AnnotationAttributes.fromMap(enableAttrMap);
             }
         }
+
+        // namespace and setname may be set as SpEL expressions
+        final ExpressionParser expressionParser = new SpelExpressionParser();
+
+        final String ns = resolve(enableAttrs.getString("namespace"));
+        if (ns.startsWith("#{") && ns.endsWith("}")) {
+            namespace = expressionParser.parseExpression(ns.substring(2, ns.length() - 1)).getValue(String.class);
+        } else {
+            namespace = ns;
+        }
+
+        final String sn = resolve(enableAttrs.getString("setname"));
+        if (sn.startsWith("#{") && sn.endsWith("}")) {
+            setname = expressionParser.parseExpression(sn.substring(2, sn.length() - 1)).getValue(String.class);
+        } else {
+            setname = sn;
+        }
+
         maxInactiveIntervalInSeconds = enableAttrs.getNumber("maxInactiveIntervalInSeconds");
-        namespace = enableAttrs.getString("namespace");
-        setname = enableAttrs.getString("setname");
         serializationType = enableAttrs.getEnum("serializationType");
         compression = enableAttrs.getEnum("compression");
     }
 
+    /**
+     * Resolve the specified value if possible.
+     * 
+     * @param value
+     *            the value to resolve
+     * @return the resolved value
+     * @see ConfigurableBeanFactory#resolveEmbeddedValue
+     */
+    private String resolve(final String value) {
+        if (this.beanFactory != null && this.beanFactory instanceof ConfigurableBeanFactory) {
+            return ((ConfigurableBeanFactory) this.beanFactory).resolveEmbeddedValue(value);
+        }
+        return value;
+    }
+
     @Autowired(required = false)
-    public void setHttpSessionStrategy(HttpSessionStrategy httpSessionStrategy) {
+    public void setHttpSessionStrategy(final HttpSessionStrategy httpSessionStrategy) {
         this.httpSessionStrategy = httpSessionStrategy;
     }
 
-    public void setBeanClassLoader(ClassLoader classLoader) {
+    public void setBeanClassLoader(final ClassLoader classLoader) {
         this.beanClassLoader = classLoader;
+    }
+
+    @Override
+    public void setBeanFactory(final BeanFactory beanFactory) throws BeansException {
+        this.beanFactory = beanFactory;
     }
 }

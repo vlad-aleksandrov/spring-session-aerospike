@@ -47,8 +47,7 @@ public abstract class BaseIntegrationTest {
 
     @Configuration
     @PropertySource(value = "classpath:/application.properties")
-    @EnableAerospikeHttpSession(maxInactiveIntervalInSeconds = 600, namespace = "cache", setname = "httpsessionIT",
-    serializationType = StoreSerializationType.KRYO, compression = StoreCompression.SNAPPY)
+    @EnableAerospikeHttpSession(maxInactiveIntervalInSeconds = 600, namespace = "#{'${aerospike.namespace}'}", setname = "${aerospike.setname}", serializationType = StoreSerializationType.FST, compression = StoreCompression.SNAPPY)
     static class Config {
 
         @Inject
@@ -57,12 +56,10 @@ public abstract class BaseIntegrationTest {
         @Bean(destroyMethod = "close")
         public IAerospikeClient aerospikeClient() throws Exception {
             final ClientPolicy defaultClientPolicy = new ClientPolicy();
-            final IAerospikeClient client = new AerospikeClient(defaultClientPolicy, new Host(
-                    env.getProperty("aerospike.host"),
-                    Integer.valueOf(env.getProperty("aerospike.port"))));
+            final IAerospikeClient client = new AerospikeClient(defaultClientPolicy,
+                    new Host(env.getProperty("aerospike.host"), Integer.valueOf(env.getProperty("aerospike.port"))));
             return client;
         }
-
 
     }
 

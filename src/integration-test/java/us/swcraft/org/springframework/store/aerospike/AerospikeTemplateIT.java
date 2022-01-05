@@ -108,25 +108,5 @@ public class AerospikeTemplateIT {
         template.persist(id, bins);
         assertThat("exist", template.hasKey(id), is(true));
     }
-    
-
-    @Configuration
-    @PropertySource(value = "classpath:/application.properties")
-    @EnableAerospikeHttpSession(namespace = "cache", setname = "httpsessionIT")
-    static class Config {
-        
-        @Inject
-        private Environment env;
-
-        @Bean(destroyMethod = "close")
-        public IAerospikeClient aerospikeClient() throws Exception {
-            final ClientPolicy defaultClientPolicy = new ClientPolicy();
-            final IAerospikeClient client = new AerospikeClient(defaultClientPolicy, new Host(env.getProperty("aerospike.host"),
-                    Integer.valueOf(env.getProperty("aerospike.port"))));
-            return client;
-        }
-
-
-    }
 
 }
