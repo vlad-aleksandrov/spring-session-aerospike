@@ -17,6 +17,8 @@ package us.swcraft.springframework.session.aerospike.config.annotation.web.http;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
@@ -30,7 +32,9 @@ import org.springframework.context.annotation.ImportAware;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.type.AnnotationMetadata;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.session.ExpiringSession;
 import org.springframework.session.SessionRepository;
 import org.springframework.session.web.http.HttpSessionStrategy;
@@ -58,6 +62,7 @@ import us.swcraft.springframework.session.store.kryo.KryoStoreSerializer;
  */
 @Configuration
 @EnableScheduling
+@EnableAsync
 @ComponentScan("us.swcraft.springframework.session")
 public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClassLoaderAware {
 
@@ -87,8 +92,22 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     private StoreCompression compression = StoreCompression.NONE;
 
     private HttpSessionStrategy httpSessionStrategy;
+    
+    
+    @Bean("ssa-taskExecutor")
+    public Executor taskExecutor() {
+      final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+      executor.setCorePoolSize(4);
+      executor.setMaxPoolSize(4);
+      executor.setQueueCapacity(0);
+      executor.setDaemon(true);
+      executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+      executor.setThreadNamePrefix("sessionStore-");
+      executor.initialize();
+      return executor;
+    }
 
-    @Bean(initMethod = "init")
+    @Bean(name="ssa-sessionAerospikeTemplate", initMethod = "init")
     @Inject
     public AerospikeTemplate sessionAerospikeTemplate(final IAerospikeClient aerospikeClient) {
         final AerospikeTemplate template = new AerospikeTemplate();
@@ -98,7 +117,7 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
         return template;
     }
 
-    @Bean
+    @Bean(name="ssa-storeMetadata")
     public StoreMetadata storeMetadata() {
         final StoreMetadata storeMetadata = new StoreMetadata();
         storeMetadata.setMaxInactiveIntervalInSeconds(this.maxInactiveIntervalInSeconds);
@@ -114,7 +133,7 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
      * 
      * @return
      */
-    @Bean("ssa-attrobuteSerializer")
+    @Bean("ssa-attributeSerializer")
     public StoreSerializer<Serializable> attributeSerializer() {
         if (serializationType == StoreSerializationType.FST) {
             switch (compression) {

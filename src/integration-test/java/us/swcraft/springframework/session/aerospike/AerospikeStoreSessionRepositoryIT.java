@@ -20,6 +20,8 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
+import java.net.URL;
+
 import javax.inject.Inject;
 
 import org.junit.Test;
@@ -27,6 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.session.SessionRepository;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.core.joran.util.ConfigurationWatchListUtil;
 import us.swcraft.org.springframework.store.aerospike.test.BaseIntegrationTest;
 import us.swcraft.springframework.session.aerospike.AerospikeStoreSessionRepository.AerospikeSession;
 
@@ -40,6 +44,13 @@ public class AerospikeStoreSessionRepositoryIT extends BaseIntegrationTest {
     @Test
     public void when_contextStarted_thenNoExceptions() {
         log.info("Spring context loaded. Session repository: {}", repository);
+    }
+
+    @Test
+    public void logger() {
+        LoggerContext loggerContext = ((ch.qos.logback.classic.Logger) log).getLoggerContext();
+        URL mainURL = ConfigurationWatchListUtil.getMainWatchURL(loggerContext);
+        log.info("Logback used '{}' as the configuration file.", mainURL);
     }
 
     @Test

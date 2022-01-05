@@ -39,7 +39,7 @@ public class DefaultSessionAttributesTransformer implements SessionAttributesTra
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Inject
-    @Named("ssa-attrobuteSerializer")
+    @Named("ssa-attributeSerializer")
     private StoreSerializer<Serializable> attributeSerializer;
 
     @Inject

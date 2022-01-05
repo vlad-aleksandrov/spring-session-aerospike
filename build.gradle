@@ -28,7 +28,9 @@ dependencies {
     implementation "org.springframework:spring-websocket:$springVersion"
     implementation "org.springframework:spring-messaging:$springVersion"
     
-    implementation "org.springframework.session:spring-session:$springSessionVersion"
+    implementation ("org.springframework.session:spring-session:$springSessionVersion") {
+        exclude group: "commons-logging", module: "commons-logging"        
+    }
     implementation "javax.inject:javax.inject:$injectVersion"
 
     implementation "javax.servlet:javax.servlet-api:$servletApiVersion"

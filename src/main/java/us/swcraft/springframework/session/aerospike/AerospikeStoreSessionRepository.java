@@ -27,10 +27,13 @@ import static us.swcraft.springframework.session.aerospike.PersistentSessionAero
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +85,10 @@ public class AerospikeStoreSessionRepository
     @Inject
     private SessionAttributesTransformer transformer;
 
+    @Inject
+    @Named("ssa-taskExecutor")
+    private Executor taskExecutor;
+
     /**
      * Storage initialization.
      */
@@ -95,10 +102,17 @@ public class AerospikeStoreSessionRepository
     public void save(final AerospikeSession session) {
         final SessionSnapshot sessionSnapshot = createSessionSnapshot(session);
         log.debug("Prepare and save {}", sessionSnapshot);
-        prepareAndSave(sessionSnapshot);
+
+        CompletableFuture.supplyAsync(() -> prepareAndSave(sessionSnapshot), taskExecutor).whenComplete((id, e) -> {
+            if (e == null) {
+                log.debug("Session {} saved", id);
+            } else {
+                log.error("Sesion {} save failed", id, e);
+            }
+        });
     }
 
-    private void prepareAndSave(final SessionSnapshot sessionSnapshot) {
+    private String prepareAndSave(final SessionSnapshot sessionSnapshot) {
         final String sessionId = sessionSnapshot.getSessionId();
         final Set<Bin> binsToSave = new HashSet<>();
 
@@ -124,6 +138,7 @@ public class AerospikeStoreSessionRepository
             binsToSave.add(new Bin(SESSION_ATTRIBUTES_BIN, attrs));
         }
         aerospikeOperations.persist(sessionId, binsToSave);
+        return sessionId;
     }
 
     @Scheduled(cron = "0 * * * * *")
