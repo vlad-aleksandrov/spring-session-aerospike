@@ -15,7 +15,8 @@
  */
 package us.swcraft.org.springframework.store.aerospike;
 
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.util.HashSet;
@@ -29,36 +30,27 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.core.env.Environment;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
-import us.swcraft.springframework.session.aerospike.config.annotation.web.http.EnableAerospikeHttpSession;
-import us.swcraft.springframework.session.store.aerospike.AerospikeTemplate;
-
-import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.Bin;
-import com.aerospike.client.Host;
-import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Record;
-import com.aerospike.client.policy.ClientPolicy;
 import com.aerospike.client.query.IndexType;
+
+import us.swcraft.org.springframework.store.aerospike.test.BaseIntegrationTest;
+import us.swcraft.springframework.session.store.aerospike.AerospikeTemplate;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration
 @WebAppConfiguration
-public class AerospikeTemplateIT {
+public class AerospikeTemplateIT extends BaseIntegrationTest {
 
-    private final Logger log = LoggerFactory.getLogger(this.getClass());   
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Inject
     private AerospikeTemplate template;
-    
-    
+
     @Before
     public void prepare() {
         template.deleteAll();
@@ -68,43 +60,43 @@ public class AerospikeTemplateIT {
     public void when_contextStarted_thenNoExceptions() {
         log.info("Spring context loaded. Aerospike Template: {}", template);
     }
-    
+
     @Test
     public void fetch() throws InterruptedException {
         template.createIndex("expired", "expiredIndxIT", IndexType.NUMERIC);
         String id = UUID.randomUUID().toString();
         Set<Bin> bins = new HashSet<>();
         bins.add(new Bin("sessionId", id));
-        bins.add(new Bin("expired", 10000));        
+        bins.add(new Bin("expired", 10000));
         template.persist(id, bins);
-        Record result = template.fetch(id);      
+        Record result = template.fetch(id);
         assertThat(result, notNullValue());
         assertThat(result.getString("sessionId"), is(id));
         assertThat(result.getLong("expired"), is(10000L));
     }
-        
+
     @Test
     public void createIndexAndQueryRange() {
         template.createIndex("expired", "expiredIndx", IndexType.NUMERIC);
         String id = UUID.randomUUID().toString();
         Set<Bin> bins = new HashSet<>();
         bins.add(new Bin("sessionId", id));
-        bins.add(new Bin("expired", 1000));        
+        bins.add(new Bin("expired", 1000));
         template.persist(id, bins);
-        Set<String> result = template.fetchRange("sessionId", "expired", 999, 1001);        
+        Set<String> result = template.fetchRange("sessionId", "expired", 999, 1001);
         assertThat(result.size(), is(1));
         for (String key : result) {
             assertThat(key, is(id));
         }
     }
-    
+
     @Test
     public void hasKey() throws InterruptedException {
         assertThat("not exist", template.hasKey(UUID.randomUUID().toString()), is(false));
         String id = UUID.randomUUID().toString();
         Set<Bin> bins = new HashSet<>();
         bins.add(new Bin("sessionId", id));
-        bins.add(new Bin("expired", Long.MAX_VALUE));        
+        bins.add(new Bin("expired", Long.MAX_VALUE));
         template.persist(id, bins);
         assertThat("exist", template.hasKey(id), is(true));
     }

@@ -96,7 +96,7 @@ public class AerospikeStoreSessionRepository
     public void init() {
         log.trace("Prepare session store...");
         // create index on "expired" bin
-        aerospikeOperations.createIndex(EXPIRED_BIN, EXPIRED_INDEX, IndexType.NUMERIC);
+        aerospikeOperations.createIndex(EXPIRED_BIN, EXPIRED_INDEX + "." + storeMetadata.getSetname(), IndexType.NUMERIC);
     }
 
     public void save(final AerospikeSession session) {

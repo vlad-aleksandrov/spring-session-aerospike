@@ -47,9 +47,9 @@ abstract class PersistentSessionAerospike {
     static final String EXPIRED_BIN = "expired";
     
     /**
-     * The Aerospike index name for session expiration timestamp
+     * The Aerospike index name prefix for session expiration timestamp
      */
-    static final String EXPIRED_INDEX = "expiredIndx";
+    static final String EXPIRED_INDEX = "ei";
 
     /**
      * The Aerospike bin name for session attributes map.
