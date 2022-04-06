@@ -55,15 +55,17 @@ public class AerospikeSessionExpirationPolicy {
         final Set<String> expiredSession = aerospikeOperations.fetchRange(SESSION_ID_BIN, EXPIRED_BIN, 0L,
                 System.currentTimeMillis());
         for (String sessionId : expiredSession) {
-            onDelete(sessionId);
+            onDelete(sessionId, false);
         }
     }
 
-    public void onDelete(final String sessionId) {
+    public void onDelete(final String sessionId, final boolean publishEvent) {
         if (sessionId != null) {
             aerospikeOperations.delete(sessionId);
             log.trace("Session {} deleted", sessionId);
-            publishEvent(new SessionDestroyedEvent(this, sessionId));
+            if (publishEvent) {
+                publishEvent(new SessionDestroyedEvent(this, sessionId));
+            }
         }
     }
 

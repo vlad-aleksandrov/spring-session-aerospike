@@ -1,12 +1,12 @@
 /*
  * Copyright 2015 the original author or authors.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
  * the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -141,7 +141,7 @@ public class AerospikeStoreSessionRepository
         return sessionId;
     }
 
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 0 * * * *")
     public void cleanupExpiredSessions() {
         this.expirationPolicy.cleanExpiredSessions();
     }
@@ -192,7 +192,7 @@ public class AerospikeStoreSessionRepository
 
     /**
      * Creates immutable snapshot of session metadata and attributes.
-     * 
+     *
      * @param aerospikeSession
      * @return immutable session snapshot
      */
@@ -213,7 +213,7 @@ public class AerospikeStoreSessionRepository
 
     public void delete(final String sessionId) {
         log.debug("Removing session '{}'", sessionId);
-        this.expirationPolicy.onDelete(sessionId);
+        this.expirationPolicy.onDelete(sessionId, true);
     }
 
     public AerospikeSession createSession() {
@@ -319,7 +319,7 @@ public class AerospikeStoreSessionRepository
 
         /**
          * Sets expiration timestamp only if session is "expirable".
-         * 
+         *
          * @param lastAccessedTime
          * @param maxInactiveIntervalInSeconds
          */
