@@ -100,6 +100,13 @@ public class AerospikeStoreSessionRepository
     }
 
     public void save(final AerospikeSession session) {
+        // Check if session data is a special transient session (transient attribute is true). The transient session is not stored.
+        final Object transientAttr = session.getAttribute("transient");
+        if (transientAttr != null && Boolean.valueOf(transientAttr.toString())) {
+            log.trace("not saved - transient session {}", session.getId());
+            return;
+        }
+
         final SessionSnapshot sessionSnapshot = createSessionSnapshot(session);
         log.debug("Prepare and save {}", sessionSnapshot);
 

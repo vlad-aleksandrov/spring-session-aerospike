@@ -1,12 +1,12 @@
 /*
  * Copyright 2015 the original author or authors.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -78,8 +78,6 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
 
     private BeanFactory beanFactory;
 
-    private BeanExpressionResolver resolver = new StandardBeanExpressionResolver();
-
     /**
      * Default max inactivity interval.
      */
@@ -123,8 +121,9 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
     public AerospikeTemplate sessionAerospikeTemplate(final IAerospikeClient aerospikeClient) {
         final AerospikeTemplate template = new AerospikeTemplate();
         template.setAerospikeClient(aerospikeClient);
-        template.setNamespace(namespace);
-        template.setSetname(setname);
+        template.setNamespace(this.namespace);
+        template.setSetname(this.setname);
+        template.setExpiration(this.maxInactiveIntervalInSeconds);
         return template;
     }
 
@@ -141,7 +140,7 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
 
     /**
      * Single attribute serializer/deserializer.
-     * 
+     *
      * @return
      */
     @Bean("ssa-attributeSerializer")
@@ -171,7 +170,7 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
 
     /**
      * Marshalled attributes serializer/deserializer.
-     * 
+     *
      * @return
      */
     @Bean("ssa-marshalledAttrobutesSerializer")
@@ -244,7 +243,7 @@ public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClass
 
     /**
      * Resolve the specified value if possible.
-     * 
+     *
      * @param value
      *            the value to resolve
      * @return the resolved value
