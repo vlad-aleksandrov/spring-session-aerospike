@@ -148,7 +148,7 @@ public class AerospikeStoreSessionRepository
         return sessionId;
     }
 
-    @Scheduled(cron = "0 0 * * * *")
+    //@Scheduled(cron = "0 0 * * * *")
     public void cleanupExpiredSessions() {
         this.expirationPolicy.cleanExpiredSessions();
     }
