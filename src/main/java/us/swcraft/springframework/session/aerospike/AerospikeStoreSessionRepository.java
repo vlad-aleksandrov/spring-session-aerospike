@@ -37,7 +37,6 @@ import javax.inject.Named;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.session.ExpiringSession;
 import org.springframework.session.MapSession;
 import org.springframework.session.Session;
@@ -96,11 +95,13 @@ public class AerospikeStoreSessionRepository
     public void init() {
         log.trace("Prepare session store...");
         // create index on "expired" bin
-        aerospikeOperations.createIndex(EXPIRED_BIN, EXPIRED_INDEX + "." + storeMetadata.getSetname(), IndexType.NUMERIC);
+        aerospikeOperations.createIndex(EXPIRED_BIN, EXPIRED_INDEX + "." + storeMetadata.getSetname(),
+                IndexType.NUMERIC);
     }
 
     public void save(final AerospikeSession session) {
-        // Check if session data is a special transient session (transient attribute is true). The transient session is not stored.
+        // Check if session data is a special transient session (transient
+        // attribute is true). The transient session is not stored.
         final Object transientAttr = session.getAttribute("transient");
         if (transientAttr != null && Boolean.valueOf(transientAttr.toString())) {
             log.trace("not saved - transient session {}", session.getId());
@@ -148,7 +149,6 @@ public class AerospikeStoreSessionRepository
         return sessionId;
     }
 
-    //@Scheduled(cron = "0 0 * * * *")
     public void cleanupExpiredSessions() {
         this.expirationPolicy.cleanExpiredSessions();
     }

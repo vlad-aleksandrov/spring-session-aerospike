@@ -28,20 +28,17 @@ import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.BeanExpressionResolver;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportAware;
-import org.springframework.context.expression.StandardBeanExpressionResolver;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.session.ExpiringSession;
 import org.springframework.session.SessionRepository;
@@ -69,7 +66,6 @@ import us.swcraft.springframework.session.store.kryo.KryoStoreSerializer;
  * @see EnableAerospikeHttpSession
  */
 @Configuration
-@EnableScheduling
 @EnableAsync
 @ComponentScan("us.swcraft.springframework.session")
 public class AerospikeHttpSessionConfiguration implements ImportAware, BeanClassLoaderAware, BeanFactoryAware {

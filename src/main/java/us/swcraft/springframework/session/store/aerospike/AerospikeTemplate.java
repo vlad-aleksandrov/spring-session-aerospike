@@ -168,7 +168,11 @@ public class AerospikeTemplate extends AerospikeAccessor implements AerospikeOpe
         Assert.notNull(key, "key can't be null");
         final Key recordKey = new Key(namespace, setname, key);
         try {
-            return getAerospikeClient().get(readPolicy, recordKey);
+            final Record r = getAerospikeClient().get(readPolicy, recordKey);
+            if (r != null) {
+                getAerospikeClient().touch(writePolicy, recordKey);
+            }
+            return r;
         } catch (AerospikeException e) {
             log.error("read fails", e);
             return null;
