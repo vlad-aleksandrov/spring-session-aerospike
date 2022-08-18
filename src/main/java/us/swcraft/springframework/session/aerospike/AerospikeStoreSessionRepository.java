@@ -115,7 +115,7 @@ public class AerospikeStoreSessionRepository
             if (e == null) {
                 log.debug("Session {} saved", id);
             } else {
-                log.error("Sesion {} save failed", id, e);
+                log.error("Session {} save failed", id, e);
             }
         });
     }
@@ -254,7 +254,7 @@ public class AerospikeStoreSessionRepository
          * Creates a new instance from the provided {@link MapSession}
          *
          * @param cached
-         *            the {@MapSession} that represents the persisted session
+         *            the {@link MapSession} that represents the persisted session
          *            that was retrieved. Cannot be null.
          */
         AerospikeSession(final MapSession cached) {
