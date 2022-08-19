@@ -32,7 +32,9 @@ dependencies {
         exclude group: "commons-logging", module: "commons-logging"        
     }
     implementation "javax.inject:javax.inject:$injectVersion"
+    implementation "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
 
+    implementation "javax.servlet:javax.servlet-api:$servletApiVersion"
     implementation "javax.servlet:javax.servlet-api:$servletApiVersion"
     implementation "com.esotericsoftware:kryo:$kryoVersion"
     implementation ("de.javakaffee:kryo-serializers:$kryoSerializersVersion") {
