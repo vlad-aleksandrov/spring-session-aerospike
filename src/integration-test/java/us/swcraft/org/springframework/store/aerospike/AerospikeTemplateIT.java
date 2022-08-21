@@ -17,7 +17,7 @@ package us.swcraft.org.springframework.store.aerospike;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -25,13 +25,14 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import com.aerospike.client.Bin;
@@ -41,7 +42,7 @@ import com.aerospike.client.query.IndexType;
 import us.swcraft.org.springframework.store.aerospike.test.BaseIntegrationTest;
 import us.swcraft.springframework.session.store.aerospike.AerospikeTemplate;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration
 @WebAppConfiguration
 public class AerospikeTemplateIT extends BaseIntegrationTest {
@@ -51,7 +52,7 @@ public class AerospikeTemplateIT extends BaseIntegrationTest {
     @Inject
     private AerospikeTemplate template;
 
-    @Before
+    @BeforeEach
     public void prepare() {
         template.deleteAll();
     }
@@ -62,7 +63,7 @@ public class AerospikeTemplateIT extends BaseIntegrationTest {
     }
 
     @Test
-    public void fetch() throws InterruptedException {
+    public void fetch() {
         template.createIndex("expired", "expiredIndxIT", IndexType.NUMERIC);
         String id = UUID.randomUUID().toString();
         Set<Bin> bins = new HashSet<>();
@@ -91,7 +92,7 @@ public class AerospikeTemplateIT extends BaseIntegrationTest {
     }
 
     @Test
-    public void hasKey() throws InterruptedException {
+    public void hasKey() {
         assertThat("not exist", template.hasKey(UUID.randomUUID().toString()), is(false));
         String id = UUID.randomUUID().toString();
         Set<Bin> bins = new HashSet<>();

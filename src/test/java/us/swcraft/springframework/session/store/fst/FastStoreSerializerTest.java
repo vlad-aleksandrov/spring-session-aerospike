@@ -17,14 +17,13 @@ package us.swcraft.springframework.session.store.fst;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,10 +31,10 @@ import us.swcraft.springframework.session.store.StoreCompression;
 
 public class FastStoreSerializerTest {
 
-    private Logger log = LoggerFactory.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Test
-    public void serializeAndDeserializeCompressionSnappy_String() throws IOException {
+    public void serializeAndDeserializeCompressionSnappy_String() {
         String token = "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.";
         FastStoreSerializer<String> converter = new FastStoreSerializer<>(StoreCompression.SNAPPY);
 
@@ -50,7 +49,7 @@ public class FastStoreSerializerTest {
     }
 
     @Test
-    public void serializeAndDeserializeCompressionSnappy_byteArray() throws IOException {
+    public void serializeAndDeserializeCompressionSnappy_byteArray() {
         String token = "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.";
         byte[] original = token.getBytes();
 
@@ -69,7 +68,7 @@ public class FastStoreSerializerTest {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
-    public void serializeAndDeserializeCompressionSnappy_map() throws IOException {
+    public void serializeAndDeserializeCompressionSnappy_map() {
         HashMap<String, Object> m = new HashMap<>();
         m.put("A1",
                 "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.");
@@ -95,7 +94,7 @@ public class FastStoreSerializerTest {
     }
 
     @Test
-    public void serializeAndDeserializeCompressionNone_String() throws IOException {
+    public void serializeAndDeserializeCompressionNone_String() {
         String token = "Vestibulum ut consectetur orci. Nullam pulvinar dui quis scelerisque suscipit. Integer in nisl a orci imperdiet posuere.";
         FastStoreSerializer<String> converter = new FastStoreSerializer<>(StoreCompression.NONE);
 

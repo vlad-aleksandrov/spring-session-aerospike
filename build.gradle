@@ -50,8 +50,14 @@ dependencies {
     implementation "com.aerospike:aerospike-client:$aerospikeVersion"
 
     // Testing
-    testImplementation "junit:junit:$junitVersion"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion"
+    testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
     testImplementation "org.springframework:spring-test:$springVersion"
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
+}
+
+test {
+    useJUnitPlatform()
 }
 

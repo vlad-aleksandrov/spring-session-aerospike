@@ -18,16 +18,15 @@ package us.swcraft.springframework.session.transformer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 import javax.inject.Inject;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +45,8 @@ public class DefaultSessionAttributesTransformerIT extends BaseIntegrationTest {
     }
 
     @Test
-    public void marshal_unmarshal() throws InterruptedException {
-        Map<String, Object> attrs = new HashMap<String, Object>();
+    public void marshal_unmarshal() {
+        Map<String, Object> attrs = new HashMap<>();
 
         attrs.put("S", "DEADBEF");
         attrs.put("UUID", UUID.randomUUID());
@@ -62,8 +61,8 @@ public class DefaultSessionAttributesTransformerIT extends BaseIntegrationTest {
     }
 
     @Test
-    public void marshal_unmarshal_Serializable() throws InterruptedException {
-        Map<String, Object> attrs = new HashMap<String, Object>();
+    public void marshal_unmarshal_Serializable() {
+        Map<String, Object> attrs = new HashMap<>();
         attrs.put("S", new S());
 
         byte[] binarySession = transformer.marshall(attrs);
@@ -76,8 +75,8 @@ public class DefaultSessionAttributesTransformerIT extends BaseIntegrationTest {
     }
     
     @Test
-    public void marshal_unmarshal_not_Serializable() throws InterruptedException {
-        Map<String, Object> attrs = new HashMap<String, Object>();
+    public void marshal_unmarshal_not_Serializable() {
+        Map<String, Object> attrs = new HashMap<>();
         attrs.put("NS", new NS());
 
         byte[] binarySession = transformer.marshall(attrs);
