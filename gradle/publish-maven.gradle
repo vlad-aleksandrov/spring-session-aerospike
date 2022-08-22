@@ -1,4 +1,6 @@
 apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
 
 task sourceJar(type: Jar) {
     from sourceSets.main.allJava
@@ -16,10 +18,19 @@ publishing {
     }
 }
 
+signing {
+    setRequired {
+        // signing is only required if the artifacts are to be published
+        gradle.taskGraph.allTasks.any { it.equals( PublishToMavenRepository) }
+    }
+    useGpgCmd()
+    sign publishing.publications.mavenJava
+}
+
+
 publishing {
     repositories {
         maven {
-            // change to point to your repo, e.g. http://my.org/repo
             url "$buildDir/repo"
         }
     }
