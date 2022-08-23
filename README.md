@@ -11,13 +11,13 @@ Data stored in the session must be Serializable.
 
 # Installation
 
-To use the latest release in your application, use this dependency entry in your `pom.xml` (WIP)
+To use the latest release in your application, use this dependency entry in your `pom.xml`
 
 ````
 <dependency>
-   <groupId>us.swcraft.springframework.session.aerospike</groupId>
+   <groupId>us.swcraft.springframework</groupId>
    <artifactId>spring-session-aerospike</artifactId>
-   <version>0.0.1</version>
+   <version>0.0.16</version>
 </dependency>
 ````
 
