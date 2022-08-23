@@ -89,7 +89,7 @@ public class SessionStoreConfiguration {
 }
 ````
 
-In this simple example a single aerospike node is defined as application properties `erospike.session.store.host` and `aerospike.session.store.port`
+In this simple example a single aerospike node is defined as application properties `aerospike.session.store.host` and `aerospike.session.store.port`
 
 `application.properties` example:
 
