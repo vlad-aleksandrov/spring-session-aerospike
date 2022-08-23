@@ -41,17 +41,17 @@ import com.aerospike.client.task.IndexTask;
 
 /**
  * Helper class that simplifies Aerospike data access code.
- * <p/>
+ * <br>
  * Performs automatic serialization/deserialization between the given objects
  * and the underlying binary data in the Aerospike store. It uses Kryo
  * serialization with Snappy compression for objects
- * <p/>
+ * <br>
  * Once configured, this class is thread-safe.
- * <p/>
+ * <br>
  * Note that while the template is generified, it is up to the
  * serializers/deserializers to properly convert the given Objects to and from
  * binary data.
- * <p/>
+ * <br>
  * <b>This is the central class in Aerospike support</b>.
  *
  * @author Vlad Aleksandrov

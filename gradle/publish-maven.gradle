@@ -1,18 +1,40 @@
+apply plugin: 'java-library'
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
-
-task sourceJar(type: Jar) {
-    from sourceSets.main.allJava
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
+
 
 publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
-            
-            artifact sourceJar {
-                classifier "sources"
+
+            pom {
+                name = "spring-session-aerospike"
+                description = "Store HTTP session data in Aerospike Database for Spring MVC web application."
+                url = "https://github.com/vlad-aleksandrov/spring-session-aerospike"
+                licenses {
+                    license {
+                        name = "The Apache License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
+                }
+                developers {
+                    developer {
+                        id = "vlad"
+                        name = "Vladimir Aleksandrov"
+                        email = "vlad.aleksandrov@gmail.com"
+                    }
+                }
+                scm {
+                    connection = "scm:git:https://github.com/vlad-aleksandrov/spring-session-aerospike"
+                    developerConnection = "scm:git:https://github.com/vlad-aleksandrov/spring-session-aerospike"
+                    url = "https://github.com/vlad-aleksandrov/spring-session-aerospike"
+                }
             }
         }
     }

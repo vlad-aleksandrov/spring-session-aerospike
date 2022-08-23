@@ -23,13 +23,13 @@ public enum StoreSerializationType {
 
     /**
      * fast-serialization
-     * {@linkplain https://github.com/RuedigerMoeller/fast-serialization}
+     * https://github.com/RuedigerMoeller/fast-serialization
      */
     FST,
 
     /**
      * Kryo
-     * {@linkplain https://github.com/EsotericSoftware/kryo}
+     * https://github.com/EsotericSoftware/kryo
      */
     KRYO;
 
