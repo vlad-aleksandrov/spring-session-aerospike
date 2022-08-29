@@ -1,9 +1,9 @@
 # spring-session-aerospike
-Store HTTP session data in Aerospike for Spring MVC web application.
+Store HTTP session data in Aerospike for Spring MVC web application with optional compression and customizable serialization.
 
 # Overview
 
-An session manager implementation that stores sessions in Aerospike for easy distribution of requests across a cluster of web servers. 
+An HTTP session manager implementation that stores sessions in Aerospike for easy distribution of requests across a cluster of web servers. 
 
 Sessions are stored into Aerospike immediately upon creation for use by other servers. Sessions are loaded as requested directly from Aerospike. In order to prevent collisions (and lost writes) as much as possible, session data is only updated in Aerospike if the session has been modified.
 
